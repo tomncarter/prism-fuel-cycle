@@ -17,13 +17,13 @@ def axial_to_xy(q: int, r: int, pitch: float = 1.0) -> Tuple[float, float]:
     return x, y
 
 def ring_angle_sort(coords: List[Axial], start_angle_deg: float = 90.0) -> List[Axial]:
-    # clockwise, starting at "top" (90°)
+    # clockwise, starting at start_angle_deg (default 90° = top).
+    # OpenMC HexLattice.universes expects rings ordered from "top", clockwise.
+    # CW = decreasing CCW angle, so we sort by (start - raw_angle) mod 360 ascending.
     def ang(c: Axial) -> float:
         x, y = axial_to_xy(c[0], c[1], 1.0)
         a = math.degrees(math.atan2(y, x))
-        a = (a + 360.0) % 360.0
-        a = (a - start_angle_deg + 360.0) % 360.0
-        return a
+        return (start_angle_deg - a + 360.0) % 360.0
     return sorted(coords, key=ang)
 
 def full_hex_coords(max_ring: int) -> List[Axial]:

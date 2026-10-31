@@ -1,0 +1,79 @@
+{
+  "name": "prism_cr072",
+  "description": "PRISM UNF disposal core, CR=0.72. Layout verified against NT article (Triplett 2012). Includes control rods, ultimate shutdown rods, GEMs, and corner notch geometry.",
+  "cycle_length_days": 365,
+  "layout": {
+    "mode": "rings_with_overrides",
+    "rings": [
+      { "range": [0, 3], "type": "inner_fuel" },
+      { "range": [4, 4], "type": "internal_blanket" },
+      { "range": [5, 7], "type": "outer_fuel" },
+      { "range": [8, 8], "type": "radial_blanket" },
+      { "range": [9, 10], "type": "reflector" },
+      { "range": [11, 11], "type": "shield" }
+    ],
+    "overrides": [
+      { "comment": "Ring 3 — safety (primary shutdown) rods" },
+      { "q":  0, "r":  3, "type": "control_rod" },
+      { "q":  3, "r": -3, "type": "control_rod" },
+      { "q": -3, "r":  0, "type": "control_rod" },
+
+      { "comment": "Ring 3 — ultimate shutdown rods (interleaved)" },
+      { "q": -3, "r":  3, "type": "ultimate_shutdown" },
+      { "q":  3, "r":  0, "type": "ultimate_shutdown" },
+      { "q":  0, "r": -3, "type": "ultimate_shutdown" },
+
+      { "comment": "Ring 6 — primary control rods" },
+      { "q": -3, "r":  6, "type": "control_rod" },
+      { "q":  3, "r":  3, "type": "control_rod" },
+      { "q":  6, "r": -3, "type": "control_rod" },
+      { "q":  3, "r": -6, "type": "control_rod" },
+      { "q": -6, "r":  3, "type": "control_rod" },
+      { "q": -3, "r": -3, "type": "control_rod" },
+
+      { "comment": "Ring 7 — Gas Expansion Modules (GEMs)" },
+      { "q":  0, "r":  7, "type": "gem" },
+      { "q":  7, "r":  0, "type": "gem" },
+      { "q":  7, "r": -7, "type": "gem" },
+      { "q":  0, "r": -7, "type": "gem" },
+      { "q": -7, "r":  0, "type": "gem" },
+      { "q": -7, "r":  7, "type": "gem" },
+
+      { "comment": "Corner notch — ring 10 vertices promoted to shield" },
+      { "q":  0, "r": 10, "type": "shield" },
+      { "q": 10, "r":  0, "type": "shield" },
+      { "q": 10, "r":-10, "type": "shield" },
+      { "q":  0, "r":-10, "type": "shield" },
+      { "q":-10, "r":  0, "type": "shield" },
+      { "q":-10, "r": 10, "type": "shield" },
+
+      { "comment": "Corner notch — ring 8 vertices promoted to reflector" },
+      { "q":  0, "r":  8, "type": "reflector" },
+      { "q":  8, "r":  0, "type": "reflector" },
+      { "q":  8, "r": -8, "type": "reflector" },
+      { "q":  0, "r": -8, "type": "reflector" },
+      { "q": -8, "r":  0, "type": "reflector" },
+      { "q": -8, "r":  8, "type": "reflector" },
+
+      { "comment": "Corner notch — ring 11 vertices empty (no assembly)" },
+      { "q":  0, "r": 11, "type": "empty" },
+      { "q": 11, "r":  0, "type": "empty" },
+      { "q": 11, "r":-11, "type": "empty" },
+      { "q":  0, "r":-11, "type": "empty" },
+      { "q":-11, "r":  0, "type": "empty" },
+      { "q":-11, "r": 11, "type": "empty" }
+    ]
+  },
+  "assembly_types": {
+    "inner_fuel":        { "universe": "u_inner_fuel",        "fuel_params": { "pu_hm_frac": 0.189, "zr_frac": 0.10 } },
+    "outer_fuel":        { "universe": "u_outer_fuel",        "fuel_params": { "pu_hm_frac": 0.227, "zr_frac": 0.10 } },
+    "internal_blanket":  { "universe": "u_internal_blanket",  "fuel_params": { "u235_frac": 0.00711 } },
+    "radial_blanket":    { "universe": "u_radial_blanket",    "fuel_params": { "u235_frac": 0.00711 } },
+    "reflector":         { "universe": "u_reflector" },
+    "shield":            { "universe": "u_shield" },
+    "control_rod":       { "universe": "u_control_rod" },
+    "ultimate_shutdown": { "universe": "u_ultimate_shutdown" },
+    "gem":               { "universe": "u_gem" },
+    "empty":             { "universe": "u_empty" }
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "name": "abr1000_breakeven",
+  "description": "ABR-1000 breakeven core (CR ≈ 1.0). Three fuel zones (inner/middle/outer), no blankets. Control rods, ultimate shutdown, and GEMs at same positions as PRISM CR=0.72 design.",
+  "layout": {
+    "mode": "rings_with_overrides",
+    "rings": [
+      { "range": [0, 2], "type": "inner_fuel" },
+      { "range": [3, 5], "type": "middle_fuel" },
+      { "range": [6, 8], "type": "outer_fuel" },
+      { "range": [9, 10], "type": "reflector" },
+      { "range": [11, 11], "type": "shield" }
+    ],
+    "overrides": [
+      { "comment": "Ring 3 — safety (primary shutdown) rods" },
+      { "q":  0, "r":  3, "type": "control_rod" },
+      { "q":  3, "r": -3, "type": "control_rod" },
+      { "q": -3, "r":  0, "type": "control_rod" },
+
+      { "comment": "Ring 3 — ultimate shutdown rods (interleaved)" },
+      { "q": -3, "r":  3, "type": "ultimate_shutdown" },
+      { "q":  3, "r":  0, "type": "ultimate_shutdown" },
+      { "q":  0, "r": -3, "type": "ultimate_shutdown" },
+
+      { "comment": "Ring 6 — primary control rods" },
+      { "q": -3, "r":  6, "type": "control_rod" },
+      { "q":  3, "r":  3, "type": "control_rod" },
+      { "q":  6, "r": -3, "type": "control_rod" },
+      { "q":  3, "r": -6, "type": "control_rod" },
+      { "q": -6, "r":  3, "type": "control_rod" },
+      { "q": -3, "r": -3, "type": "control_rod" },
+
+      { "comment": "Ring 7 — Gas Expansion Modules (GEMs)" },
+      { "q":  0, "r":  7, "type": "gem" },
+      { "q":  7, "r":  0, "type": "gem" },
+      { "q":  7, "r": -7, "type": "gem" },
+      { "q":  0, "r": -7, "type": "gem" },
+      { "q": -7, "r":  0, "type": "gem" },
+      { "q": -7, "r":  7, "type": "gem" },
+
+      { "comment": "Corner notch — ring 10 vertices promoted to shield" },
+      { "q":  0, "r": 10, "type": "shield" },
+      { "q": 10, "r":  0, "type": "shield" },
+      { "q": 10, "r":-10, "type": "shield" },
+      { "q":  0, "r":-10, "type": "shield" },
+      { "q":-10, "r":  0, "type": "shield" },
+      { "q":-10, "r": 10, "type": "shield" },
+
+      { "comment": "Corner notch — ring 8 outer fuel vertices promoted to reflector" },
+      { "q":  0, "r":  8, "type": "reflector" },
+      { "q":  8, "r":  0, "type": "reflector" },
+      { "q":  8, "r": -8, "type": "reflector" },
+      { "q":  0, "r": -8, "type": "reflector" },
+      { "q": -8, "r":  0, "type": "reflector" },
+      { "q": -8, "r":  8, "type": "reflector" },
+
+      { "comment": "Corner notch — ring 11 vertices empty (no assembly)" },
+      { "q":  0, "r": 11, "type": "empty" },
+      { "q": 11, "r":  0, "type": "empty" },
+      { "q": 11, "r":-11, "type": "empty" },
+      { "q":  0, "r":-11, "type": "empty" },
+      { "q":-11, "r":  0, "type": "empty" },
+      { "q":-11, "r": 11, "type": "empty" }
+    ]
+  },
+  "assembly_types": {
+    "inner_fuel":        { "universe": "u_inner_fuel",        "fuel_params": { "pu_hm_frac": 0.140, "zr_frac": 0.10 } },
+    "middle_fuel":       { "universe": "u_middle_fuel",       "fuel_params": { "pu_hm_frac": 0.180, "zr_frac": 0.10 } },
+    "outer_fuel":        { "universe": "u_outer_fuel",        "fuel_params": { "pu_hm_frac": 0.220, "zr_frac": 0.10 } },
+    "reflector":         { "universe": "u_reflector" },
+    "shield":            { "universe": "u_shield" },
+    "control_rod":       { "universe": "u_control_rod" },
+    "ultimate_shutdown": { "universe": "u_ultimate_shutdown" },
+    "gem":               { "universe": "u_gem" },
+    "empty":             { "universe": "u_empty" }
+  }
+}

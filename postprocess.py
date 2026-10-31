@@ -16,6 +16,7 @@ Outputs (all in results_dir):
 """
 from __future__ import annotations
 
+import json
 import sys
 import datetime
 from pathlib import Path
@@ -29,7 +30,7 @@ import openmc.deplete
 # Nuclides to extract from depletion results.
 # The fast chain may not carry every nuclide; missing ones are silently skipped.
 KEY_NUCLIDES = [
-    "U235", "U238",
+    "U234", "U235", "U236", "U238",
     "Pu238", "Pu239", "Pu240", "Pu241", "Pu242",
     "Am241", "Am243",
     "Np237",
@@ -40,6 +41,7 @@ KEY_NUCLIDES = [
 SCALAR_TALLIES = [
     "fission_inner", "fission_outer",
     "blanket_breeding_internal", "blanket_breeding_radial",
+    "cr_fissile_production", "cr_fissile_destruction",
     "leakage_radial_total", "leakage_axial_top", "leakage_axial_bot",
 ]
 
@@ -99,6 +101,16 @@ def extract_inventories(
     return pd.DataFrame(rows)
 
 
+def extract_keff_statepoint(sp: openmc.StatePoint, run_tag: str) -> pd.DataFrame:
+    """Single BOC k-eff row for transport-only runs (no depletion_results.h5)."""
+    return pd.DataFrame({
+        "run_tag":   [run_tag],
+        "time_days": [0.0],
+        "keff":      [sp.keff.nominal_value],
+        "keff_unc":  [sp.keff.std_dev],
+    })
+
+
 def extract_tallies(sp: openmc.StatePoint, run_tag: str, time_days: float) -> pd.DataFrame:
     rows = []
     for tname in SCALAR_TALLIES:
@@ -141,10 +153,22 @@ def extract_metadata(
         "postprocessed_at":  datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
     }
 
-    # Parse internal/radial feed from run_tag (e.g. "NUint_DUrad")
+    # Parse internal/radial feed from legacy run_tags (e.g. "NUint_DUrad")
     parts = run_tag.split("_")
-    meta["internal_feed"] = parts[0].replace("int", "") if len(parts) >= 1 else None
-    meta["radial_feed"]   = parts[1].replace("rad", "") if len(parts) >= 2 else None
+    legacy = len(parts) == 2 and parts[0].endswith("int") and parts[1].endswith("rad")
+    meta["internal_feed"] = parts[0].replace("int", "") if legacy else None
+    meta["radial_feed"]   = parts[1].replace("rad", "") if legacy else None
+
+    # Loadout / profile provenance written by build_prism_core.write_run_info
+    info_file = run_dir / "run_info.json"
+    if info_file.exists():
+        info = json.loads(info_file.read_text())
+        meta["loadout"]       = info.get("loadout_name")
+        meta["profile"]       = info.get("profile")
+        meta["fissile_scale"] = info.get("fissile_scale")
+        meta["fuel_params"]   = json.dumps(info.get("fuel_params", {}), sort_keys=True)
+    else:
+        meta["loadout"] = meta["profile"] = meta["fissile_scale"] = meta["fuel_params"] = None
 
     # Statepoint modification time — proxy for when the transport run finished
     sp_file = _find_final_statepoint(run_dir)
@@ -222,6 +246,8 @@ def process_run(run_dir: Path, run_tag: str):
     sp_obj = None
     if sp_file and sp_file.exists():
         sp_obj = openmc.StatePoint(str(sp_file))
+        if keff_df is None:
+            keff_df = extract_keff_statepoint(sp_obj, run_tag)
         final_time = float(keff_df["time_days"].iloc[-1]) if keff_df is not None and len(keff_df) else 0.0
         tally_df = extract_tallies(sp_obj, run_tag, final_time)
         spec_df  = extract_spectra(sp_obj, run_tag, final_time)

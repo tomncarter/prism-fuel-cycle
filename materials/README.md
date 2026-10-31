@@ -13,20 +13,32 @@ weighted composition.
 |----------|-------|-------------|
 | `PU_HM_INNER` | 0.20 | Pu/HM atom fraction, inner driver zone |
 | `PU_HM_OUTER` | 0.17 | Pu/HM atom fraction, outer driver zone |
-| `FISSILE_SCALE` | 0.923 | Global Pu multiplier for criticality tuning (Tier-1 only) |
-| `ZR_METAL_FRAC` | 0.10 | Zr fraction within fuel metal (U-Pu-Zr alloy) |
-| `SMEAR_FUEL_METAL` | 0.35 | Volume fraction of fuel metal in smeared interior |
-| `SMEAR_SODIUM` | 0.55 | Volume fraction of sodium in smeared interior |
-| `SMEAR_STEEL` | 0.10 | Volume fraction of steel in smeared interior |
+| `FISSILE_SCALE` | 1.0 | Global Pu multiplier for criticality tuning (Tier-1 only) |
+| `ZR_METAL_FRAC` | 0.10 | Zr **weight** fraction of the U-(Pu)-Zr alloy (default; overridable via `fuel_params.zr_frac`) |
+| `SMEAR_FUEL_METAL` | 0.27 | Interior volume fraction of fuel slug (~0.36 clad-inner × 0.75 smear) |
+| `SMEAR_SODIUM` | 0.53 | Interior volume fraction of coolant + bond Na |
+| `SMEAR_STEEL` | 0.20 | Interior volume fraction of HT9 cladding + wire wrap |
 | `NU_U235_FRAC` | 0.00711 | U-235 atom fraction for natural uranium blanket feed |
 | `DU_U235_FRAC` | 0.0020 | U-235 atom fraction for depleted uranium blanket feed |
 
 ### Material functions
 
-**`make_smeared_driver(name, pu_hm)`** — driver zone interior. Computes the
-U-Pu-Zr metal composition from `pu_hm`, applies `FISSILE_SCALE`, then blends with
-Na and Fe/Cr at the smear fractions. The Pu isotopic vector is reactor-grade:
-Pu239=55%, Pu240=25%, Pu241=12%, Pu242=8%.
+**`make_smeared_driver(name, pu_hm, pu_vector, u_vector, zr_frac)`** — driver zone interior.
+Computes the U-Pu-Zr (or U-Zr when `pu_hm == 0`) metal composition, applies
+`FISSILE_SCALE` to the Pu fraction only, then blends with Na and Fe/Cr at the smear
+fractions.  `make_smeared_fuel` takes each component at its theoretical density
+(alloy by specific-volume mixing of 19.05 g/cm³ HM and 6.52 g/cm³ Zr; Na 0.92;
+HT9 7.8) weighted by its volume fraction, so amounts are true atom/b-cm
+(`set_density("sum")`).
+
+- `pu_vector`: `"reactor_grade"` (Pu239=55%, Pu240=25%, Pu241=12%, Pu242=8%) or
+  `"weapons_grade"` (93.4/6.0/0.5/0.1%).
+- `u_vector`: a `U_VECTORS` name — `"u238"` (legacy default, pure U-238),
+  `"depleted"`, `"natural"`, `"haleu"` (19.75% U-235), `"weapons_grade"` (93.2% HEU)
+  — or a blend dict by atom weight, e.g. `{"weapons_grade": 0.224, "depleted": 0.776}`
+  for HEU down-blended into DU.
+
+Loadout `fuel_params` map directly: `pu_hm_frac`, `pu_vector`, `u_vector`.
 
 **`make_smeared_blanket(name, u235_frac)`** — blanket interior. Same smear structure
 but uranium only (no Pu at BOC). The `u235_frac` selects NU vs DU feed.

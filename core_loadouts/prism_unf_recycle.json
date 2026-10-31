@@ -1,0 +1,24 @@
+{
+  "name": "prism_unf_recycle",
+  "description": "PRISM UNF Recycle (EG23): CR=0.72, 12-month cycle, NU blankets. Inner 18.9% TRU, outer 22.7% TRU (Triplett 2012 Table II).",
+  "cycle_length_days": 365,
+  "layout": {
+    "mode": "rings",
+    "rings": [
+      { "range": [0, 3], "type": "inner_fuel" },
+      { "range": [4, 4], "type": "internal_blanket" },
+      { "range": [5, 7], "type": "outer_fuel" },
+      { "range": [8, 8], "type": "radial_blanket" },
+      { "range": [9, 10], "type": "reflector" },
+      { "range": [11, 11], "type": "shield" }
+    ]
+  },
+  "assembly_types": {
+    "inner_fuel":       { "universe": "u_inner_fuel",       "fuel_params": { "pu_hm_frac": 0.189, "ma_tru_frac": 0.0, "zr_frac": 0.10 } },
+    "outer_fuel":       { "universe": "u_outer_fuel",       "fuel_params": { "pu_hm_frac": 0.227, "ma_tru_frac": 0.0, "zr_frac": 0.10 } },
+    "internal_blanket": { "universe": "u_internal_blanket", "fuel_params": { "u235_frac": 0.00711 } },
+    "radial_blanket":   { "universe": "u_radial_blanket",   "fuel_params": { "u235_frac": 0.00711 } },
+    "reflector":        { "universe": "u_reflector" },
+    "shield":           { "universe": "u_shield" }
+  }
+}

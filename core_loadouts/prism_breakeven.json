@@ -1,0 +1,20 @@
+{
+  "name": "prism_breakeven",
+  "description": "PRISM Breakeven: CR=1.06, 23-month cycle. ~21% fissile Pu (Triplett 2012 Table II). No blanket zones.",
+  "cycle_length_days": 700,
+  "layout": {
+    "mode": "rings",
+    "rings": [
+      { "range": [0, 4], "type": "inner_fuel" },
+      { "range": [5, 8], "type": "outer_fuel" },
+      { "range": [9, 10], "type": "reflector" },
+      { "range": [11, 11], "type": "shield" }
+    ]
+  },
+  "assembly_types": {
+    "inner_fuel": { "universe": "u_inner_fuel", "fuel_params": { "pu_hm_frac": 0.21, "ma_tru_frac": 0.0, "zr_frac": 0.10 } },
+    "outer_fuel": { "universe": "u_outer_fuel", "fuel_params": { "pu_hm_frac": 0.21, "ma_tru_frac": 0.0, "zr_frac": 0.10 } },
+    "reflector":  { "universe": "u_reflector" },
+    "shield":     { "universe": "u_shield" }
+  }
+}

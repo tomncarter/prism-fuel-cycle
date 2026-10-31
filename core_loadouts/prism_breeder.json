@@ -1,0 +1,24 @@
+{
+  "name": "prism_breeder",
+  "description": "PRISM Breeder: CR=1.23, 23-month cycle. ~20.7% fissile Pu with axial and radial blankets for surplus TRU production (Triplett 2012 Table II). DU blankets (project baseline; Triplett used NU).",
+  "cycle_length_days": 700,
+  "layout": {
+    "mode": "rings",
+    "rings": [
+      { "range": [0, 3], "type": "inner_fuel" },
+      { "range": [4, 4], "type": "internal_blanket" },
+      { "range": [5, 7], "type": "outer_fuel" },
+      { "range": [8, 8], "type": "radial_blanket" },
+      { "range": [9, 10], "type": "reflector" },
+      { "range": [11, 11], "type": "shield" }
+    ]
+  },
+  "assembly_types": {
+    "inner_fuel":       { "universe": "u_inner_fuel",       "fuel_params": { "pu_hm_frac": 0.207, "ma_tru_frac": 0.0, "zr_frac": 0.10 } },
+    "outer_fuel":       { "universe": "u_outer_fuel",       "fuel_params": { "pu_hm_frac": 0.207, "ma_tru_frac": 0.0, "zr_frac": 0.10 } },
+    "internal_blanket": { "universe": "u_internal_blanket", "fuel_params": { "u235_frac": 0.0020 } },
+    "radial_blanket":   { "universe": "u_radial_blanket",   "fuel_params": { "u235_frac": 0.0020 } },
+    "reflector":        { "universe": "u_reflector" },
+    "shield":           { "universe": "u_shield" }
+  }
+}

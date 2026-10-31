@@ -5,7 +5,7 @@ from typing import Tuple
 
 @dataclass(frozen=True)
 class Prism3D:
-    active_height_cm: float = 101.60  # Tier-1 basis; later swap to 66.0 / 106.7 PRISM missions
+    active_height_cm: float = 101.60  # default; loadouts override via "active_height_cm" (66.0 / 106.7 PRISM missions)
 
 @dataclass(frozen=True)
 class AssemblyGeom:

@@ -21,6 +21,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Tuple
 
 from geometry.hexmap import full_hex_coords, hex_distance
+from geometry.params import Prism3D
 
 Axial = Tuple[int, int]
 
@@ -38,6 +39,15 @@ class AssemblyPosition:
 def _auto_material_id(type_name: str, q: int, r: int) -> str:
     """Stable, human-readable material ID derived from type and coordinates."""
     return f"{type_name}_q{q:+d}_r{r:+d}"
+
+
+def load_axial(path: str) -> Prism3D:
+    """Axial geometry of a loadout: its "active_height_cm", else the Prism3D default."""
+    with open(path) as f:
+        doc = json.load(f)
+    if "active_height_cm" in doc:
+        return Prism3D(active_height_cm=float(doc["active_height_cm"]))
+    return Prism3D()
 
 
 def load_core(path: str) -> tuple[list[AssemblyPosition], dict]:

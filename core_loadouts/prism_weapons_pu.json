@@ -2,6 +2,7 @@
   "name": "prism_weapons_pu",
   "description": "PRISM Weapons Pu Consumption: CR=1.00, 26-month cycle. ~22.9% fissile Pu (weapons-grade vector). Denatures WG-Pu through irradiation to reactor-grade isotopics (Triplett 2012 Table II).",
   "cycle_length_days": 791,
+  "active_height_cm": 106.7,
   "layout": {
     "mode": "rings",
     "rings": [

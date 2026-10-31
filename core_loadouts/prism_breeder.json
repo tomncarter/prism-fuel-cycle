@@ -2,6 +2,7 @@
   "name": "prism_breeder",
   "description": "PRISM Breeder: CR=1.23, 23-month cycle. ~20.7% fissile Pu with axial and radial blankets for surplus TRU production (Triplett 2012 Table II). DU blankets (project baseline; Triplett used NU).",
   "cycle_length_days": 700,
+  "active_height_cm": 106.7,
   "layout": {
     "mode": "rings",
     "rings": [

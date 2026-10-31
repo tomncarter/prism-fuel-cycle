@@ -2,6 +2,7 @@
   "name": "prism_unf_recycle",
   "description": "PRISM UNF Recycle (EG23): CR=0.72, 12-month cycle, NU blankets. Inner 18.9% TRU, outer 22.7% TRU (Triplett 2012 Table II).",
   "cycle_length_days": 365,
+  "active_height_cm": 66.0,
   "layout": {
     "mode": "rings",
     "rings": [

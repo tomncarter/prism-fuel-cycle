@@ -2,6 +2,7 @@
   "name": "prism_cr072",
   "description": "PRISM UNF disposal core, CR=0.72. Layout verified against NT article (Triplett 2012). Includes control rods, ultimate shutdown rods, GEMs, and corner notch geometry.",
   "cycle_length_days": 365,
+  "active_height_cm": 66.0,
   "layout": {
     "mode": "rings_with_overrides",
     "rings": [

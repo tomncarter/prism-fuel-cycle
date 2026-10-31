@@ -2,6 +2,7 @@
   "name": "prism_breakeven",
   "description": "PRISM Breakeven: CR=1.06, 23-month cycle. ~21% fissile Pu (Triplett 2012 Table II). No blanket zones.",
   "cycle_length_days": 700,
+  "active_height_cm": 106.7,
   "layout": {
     "mode": "rings",
     "rings": [

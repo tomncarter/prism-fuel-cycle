@@ -39,6 +39,10 @@ RUN_PROFILES = {
     # Historical defaults (36 × 30 d).
     "standard": dict(particles=10_000, batches=80, inactive=20,
                      timesteps=[TIMESTEP_DAYS] * N_CYCLES),
+    # Per-assembly depletion: half the quick histories, since depletion tallies
+    # run at ~2,000 p/s.  Reload searches keep their own, tighter k-eff.
+    "cycle": dict(particles=5_000, batches=60, inactive=20,
+                  timesteps=[5, 25, 60, 90, 90, 90]),
     # T5.1 target statistics (≤15 pcm); expensive.
     "production": dict(particles=5_000_000, batches=600, inactive=100,
                        timesteps=[TIMESTEP_DAYS] * N_CYCLES),
@@ -61,7 +65,7 @@ from materials.tier1_homog import make_materials, make_materials_from_loadout
 
 from geometry.hexmap import build_hexlattice_rings_from_assignment, full_hex_coords, hex_distance, axial_to_xy
 from core_maps.abr_like_assignment import abr_like_assignment
-from core_maps.loader import load_core
+from core_maps.loader import load_axial, load_core
 
 Axial = Tuple[int, int]
 
@@ -376,13 +380,22 @@ def write_loading_map_with_legend(
 # -----------------------------
 # Build OpenMC model (3D)
 # -----------------------------
+def _entropy_mesh(vg: VesselGeom, axial: Prism3D) -> openmc.RegularMesh:
+    """Shannon entropy mesh over the active core, for checking source convergence."""
+    mesh = openmc.RegularMesh()
+    mesh.dimension = (9, 9, 6)
+    mesh.lower_left = (-vg.lattice_bound_r_cm, -vg.lattice_bound_r_cm, -axial.active_height_cm / 2.0)
+    mesh.upper_right = (vg.lattice_bound_r_cm, vg.lattice_bound_r_cm, axial.active_height_cm / 2.0)
+    return mesh
+
+
 def build_model(loadout_path: str, profile: str = "standard"):
     """
     Build an OpenMC model from a core loadout JSON file.
 
     The loadout specifies which assembly type (and therefore which material)
-    occupies each lattice position.  All geometry constants (pitch, duct
-    dimensions, vessel radii, active height, etc.) remain in Python.
+    occupies each lattice position, and may set "active_height_cm".  All other
+    geometry constants (pitch, duct dimensions, vessel radii, etc.) remain in Python.
     Transport statistics come from RUN_PROFILES[profile].
     """
     prof = RUN_PROFILES[profile]
@@ -394,7 +407,7 @@ def build_model(loadout_path: str, profile: str = "standard"):
 
     # Geometry params
     ag = AssemblyGeom()
-    axial = Prism3D()
+    axial = load_axial(loadout_path)
     vg = VesselGeom()
 
     # Universes
@@ -517,6 +530,7 @@ def build_model(loadout_path: str, profile: str = "standard"):
     settings.temperature = {"method": "nearest"}
     settings.statepoint = {"batches": [settings.batches]}
     settings.statepoint["filename"] = "statepoint_boc.h5"
+    settings.entropy_mesh = _entropy_mesh(vg, axial)
 
     # Source (0.15.3): keep only_fissionable=True
     bounds = [-250, -250, -axial.active_height_cm / 2.0, 250, 250, axial.active_height_cm / 2.0]
@@ -655,6 +669,7 @@ def build_model_per_assembly(
     per_asm_fuel_mats: dict, # {material_id: openmc.Material} for fuel positions
     base_mats_dict: dict,    # structural materials: sodium, ht9, reflector, etc.
     settings_override: dict | None = None,
+    axial: Prism3D | None = None,  # default Prism3D(); see core_maps.loader.load_axial
 ) -> openmc.Model:
     """
     Build an OpenMC model where each fuel assembly position has its own
@@ -671,9 +686,10 @@ def build_model_per_assembly(
                             returned by make_materials / make_materials_from_loadout)
         settings_override:  optional dict of Settings attribute overrides
                             (e.g. {"particles": 5_000_000, "batches": 600})
+        axial:              axial geometry (active height)
     """
     ag = AssemblyGeom()
-    axial = Prism3D()
+    axial = axial or Prism3D()
     vg = VesselGeom()
 
     uf = UniverseFactory(ag, base_mats_dict)
@@ -758,6 +774,7 @@ def build_model_per_assembly(
     settings.inactive = 100
     settings.particles = 5_000_000
     settings.temperature = {"method": "nearest"}
+    settings.entropy_mesh = _entropy_mesh(vg, axial)
     bounds = [-250, -250, -axial.active_height_cm / 2.0, 250, 250, axial.active_height_cm / 2.0]
     settings.source = openmc.IndependentSource(
         space=openmc.stats.Box(bounds[:3], bounds[3:]),
@@ -835,6 +852,7 @@ def write_run_info(run_dir: str, loadout_path: str, profile: str, deplete: bool)
         "inactive":       prof["inactive"],
         "timesteps_days": prof["timesteps"] if deplete else [],
         "power_MWth":     POWER_MWth,
+        "active_height_cm": load_axial(loadout_path).active_height_cm,
         "fissile_scale":  t1.FISSILE_SCALE,
         "fuel_params":    {k: at["fuel_params"] for k, at in loadout["assembly_types"].items()
                            if "fuel_params" in at},

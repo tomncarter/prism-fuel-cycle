@@ -43,9 +43,9 @@ from typing import Optional
 import openmc
 import openmc.deplete
 
-from core_maps.loader import load_core, AssemblyPosition
+from core_maps.loader import load_axial, load_core, AssemblyPosition
 from build_prism_core import build_model_per_assembly, RUN_PROFILES, CHAIN_FILE, POWER_MWth
-from geometry.params import AssemblyGeom, Prism3D
+from geometry.params import AssemblyGeom
 from materials.tier1_homog import make_materials_from_loadout, PU_VECTORS
 from fuel_cycle.state import CycleState, InCoreEntry, CycleRecord, assembly_id
 from fuel_cycle.nfrc import (
@@ -328,9 +328,9 @@ class CycleRunner:
                 self.cfg.cycle_length_days = float(json.load(f).get("cycle_length_days", 365.0))
         _, self._base_mats_dict = make_materials_from_loadout(self._asm_types)
         ag = AssemblyGeom()
-        axial = Prism3D()
+        self._axial = load_axial(self.loadout_path)
         f2f = ag.duct_inner_flat_to_flat_cm
-        self._assembly_vol_cm3 = (math.sqrt(3) / 2.0) * f2f ** 2 * axial.active_height_cm
+        self._assembly_vol_cm3 = (math.sqrt(3) / 2.0) * f2f ** 2 * self._axial.active_height_cm
 
         drivers, blankets = set(), set()
         for type_name, at in self._asm_types.items():
@@ -485,6 +485,7 @@ class CycleRunner:
                 "batches":   prof["batches"],
                 "inactive":  prof["inactive"],
             },
+            axial=self._axial,
         )
         model.export_to_xml(directory=cycle_dir)
 
@@ -637,6 +638,7 @@ class CycleRunner:
                 "batches":   prof["batches"],
                 "inactive":  prof["inactive"],
             },
+            axial=self._axial,
         )
         with openmc.StatePoint(model.run(cwd=str(workdir))) as sp:
             k = sp.keff
@@ -752,6 +754,10 @@ if __name__ == "__main__":
                     help="BOEC k-eff target for the reload search (default: 1.005)")
     ap.add_argument("--search-profile", choices=RUN_PROFILES, default="quick",
                     help="transport statistics for reload-search solves (default: quick)")
+    ap.add_argument("--k-max", type=float, default=1.010,
+                    help="BOEC k-eff above which a reload halts the run (default: 1.010, T7.4)")
+    ap.add_argument("--max-step-days", type=float, default=60.0,
+                    help="longest depletion step after the short leading steps (default: 60)")
     opts = ap.parse_args()
 
     name = Path(opts.loadout).stem
@@ -766,6 +772,8 @@ if __name__ == "__main__":
         nfrc=NFRCConfig(external_feed=opts.external_feed, recycle_u=not opts.no_recycle_u),
         search_reload=not opts.no_search,
         k_target=opts.k_target,
+        k_max=opts.k_max,
+        max_step_days=opts.max_step_days,
         search_profile=opts.search_profile,
     )
     runner = CycleRunner(loadout_path=opts.loadout, run_dir=run_dir, config=cfg)

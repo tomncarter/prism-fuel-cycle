@@ -1,0 +1,75 @@
+{
+  "name": "matchedk_wg_pu",
+  "description": "Fuel test: weapons-grade Pu in DU matrix, U-Pu-10Zr, 17% Pu/HM (reactivity-matched to RG case). Breakeven layout.",
+  "cycle_length_days": 700,
+  "layout": {
+    "mode": "rings",
+    "rings": [
+      {
+        "range": [
+          0,
+          4
+        ],
+        "type": "inner_fuel"
+      },
+      {
+        "range": [
+          5,
+          8
+        ],
+        "type": "outer_fuel"
+      },
+      {
+        "range": [
+          9,
+          10
+        ],
+        "type": "reflector"
+      },
+      {
+        "range": [
+          11,
+          11
+        ],
+        "type": "shield"
+      }
+    ]
+  },
+  "assembly_types": {
+    "inner_fuel": {
+      "universe": "u_inner_fuel",
+      "fuel_params": {
+        "pu_hm_frac": 0.11625512969199782,
+        "pu_vector": "weapons_grade",
+        "u_vector": "depleted",
+        "zr_frac": 0.1
+      }
+    },
+    "outer_fuel": {
+      "universe": "u_outer_fuel",
+      "fuel_params": {
+        "pu_hm_frac": 0.11625512969199782,
+        "pu_vector": "weapons_grade",
+        "u_vector": "depleted",
+        "zr_frac": 0.1
+      }
+    },
+    "reflector": {
+      "universe": "u_reflector"
+    },
+    "shield": {
+      "universe": "u_shield"
+    }
+  },
+  "loading_search": {
+    "source_loadout": "core_loadouts/fueltest_wg_pu.json",
+    "knob": "tru",
+    "scale": 0.6838537040705753,
+    "k_target": 1.005,
+    "keff": 1.0039906002984529,
+    "keff_unc": 0.0012144909821189495,
+    "converged": true,
+    "profile": "quick",
+    "searched_at": "2026-10-28T06:08:38+00:00"
+  }
+}

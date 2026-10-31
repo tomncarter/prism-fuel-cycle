@@ -17,7 +17,7 @@ All simulation commands must be run through the Docker wrapper:
 ./run_openmc.sh python postprocess.py
 ```
 
-Run profiles (`--profile smoke|quick|standard|production`, default `standard`) set
+Run profiles (`--profile smoke|quick|cycle|standard|production`, default `standard`) set
 particles/batches and the depletion schedule — see `RUN_PROFILES` in
 `build_prism_core.py`. Non-standard profiles write to `runs/<loadout>__<profile>/`.
 ```bash
@@ -63,6 +63,8 @@ JSON loadout → core_maps/loader.py → build_prism_core.py → OpenMC XML → 
 Core configurations live in `core_loadouts/*.json`. Two layout modes:
 - `"rings"` — compact range notation (e.g., `{"range": [0, 3], "type": "inner_fuel"}`)
 - `"positions"` — explicit per-slot `(q, r)` coordinates (for shuffled Tier-2 states)
+
+A loadout may set `active_height_cm` (default 101.6, the `Prism3D` value).
 
 Each `assembly_type` entry specifies the OpenMC universe name and `fuel_params` (e.g., `pu_hm_frac`, `zr_frac`).
 

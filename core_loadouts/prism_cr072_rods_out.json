@@ -2,6 +2,7 @@
   "name": "prism_cr072_rods_out",
   "description": "PRISM UNF disposal core, CR=0.72, all rods fully withdrawn. Rod positions replaced with sodium-filled duct channels. Use to estimate all-rods-out (ARO) k-eff and maximum reactivity worth.",
   "cycle_length_days": 365,
+  "active_height_cm": 66.0,
   "layout": {
     "mode": "rings_with_overrides",
     "rings": [

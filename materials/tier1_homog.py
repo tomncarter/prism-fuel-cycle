@@ -54,11 +54,28 @@ SMEAR_FUEL_METAL = 0.27   # as-fabricated fuel slug (~0.36 clad-inner x 0.75 sme
 SMEAR_SODIUM     = 0.53   # coolant + bond sodium
 SMEAR_STEEL      = 0.20   # HT9 cladding + wire wrap
 
+# Operating temperatures (K).  Sodium inlet/outlet are Triplett 2012 Table I
+# (360 / 499 C).  T_INTERIOR_K is an assumption: the paper gives no fuel
+# temperature.  A smeared interior holds fuel, Na and steel in one material, so
+# it takes the temperature that matters most, the Doppler broadening of the
+# actinides; ~600 C is typical for sodium-bonded metal fuel.
+T_INLET_K    = 633.15
+T_OUTLET_K   = 772.15
+T_COOLANT_K  = 0.5 * (T_INLET_K + T_OUTLET_K)
+T_INTERIOR_K = 900.0
+
+
+def sodium_density(temperature_K: float) -> float:
+    """Liquid sodium density (g/cm3), Fink & Leibowitz (ANL/RE-95/2), 371-2503.7 K."""
+    tau = 1.0 - temperature_K / 2503.7
+    return (219.0 + 275.32 * tau + 511.58 * tau ** 0.5) / 1000.0
+
+
 # Theoretical densities (g/cm3) for the volume-fraction mixing below
 _RHO_HM_METAL = 19.05   # alpha-U; delta-stabilised Pu is close enough for Tier-1
 _RHO_ZR_METAL = 6.52
 
-_RHO_NA    = 0.92   # sodium density (g/cm3)
+_RHO_NA    = sodium_density(T_COOLANT_K)   # at the mean coolant temperature
 _RHO_STEEL = 7.80   # HT9/steel density (g/cm3)
 
 # Pu/HM targets for inner/outer zones (start here, then tune)
@@ -197,6 +214,7 @@ def make_smeared_fuel(name: str, hm_vec: dict, zr_frac: float = ZR_METAL_FRAC) -
     m.add_element("Cr", n_steel * 0.12)
 
     m.set_density("sum")
+    m.temperature = T_INTERIOR_K
     return m
 
 
@@ -206,10 +224,13 @@ RHO_INTERIOR = (SMEAR_FUEL_METAL * _fuel_alloy_density(ZR_METAL_FRAC)
                 + SMEAR_SODIUM * _RHO_NA + SMEAR_STEEL * _RHO_STEEL)
 
 
-def make_blended_na_steel(name: str, steel_vol_frac: float) -> openmc.Material:
+def make_blended_na_steel(
+    name: str, steel_vol_frac: float, temperature_K: float = T_COOLANT_K
+) -> openmc.Material:
     """
     Homogenized sodium + steel (Fe/Cr) region.
     steel_vol_frac: volume fraction of steel; remainder is sodium.
+    temperature_K:  region temperature; also sets the sodium density.
     Composition amounts are volume-fraction weighted (OpenMC normalises internally).
     Density is volume-averaged.
     """
@@ -218,7 +239,8 @@ def make_blended_na_steel(name: str, steel_vol_frac: float) -> openmc.Material:
     m.add_element("Na", na_frac)
     m.add_element("Fe", steel_vol_frac * 0.88)
     m.add_element("Cr", steel_vol_frac * 0.12)
-    m.set_density("g/cm3", na_frac * _RHO_NA + steel_vol_frac * _RHO_STEEL)
+    m.set_density("g/cm3", na_frac * sodium_density(temperature_K) + steel_vol_frac * _RHO_STEEL)
+    m.temperature = temperature_K
     return m
 
 
@@ -238,7 +260,7 @@ def _make_structural_mats() -> dict:
 
     sodium = openmc.Material(name="sodium")
     sodium.add_element("Na", 1.0)
-    sodium.set_density("g/cm3", 0.92)
+    sodium.set_density("g/cm3", _RHO_NA)
     sodium.depletable = False
     mats["sodium"] = sodium
 
@@ -275,12 +297,15 @@ def _make_structural_mats() -> dict:
     b4c_ult.depletable = False
     mats["b4c_ult"] = b4c_ult
 
-    for key, name, frac in [
-        ("pool_ihx",     "pool_ihx",     IHX_STEEL_VOL_FRAC),
-        ("upper_plenum", "upper_plenum", UPPER_PLENUM_STEEL_VOL_FRAC),
-        ("lower_plenum", "lower_plenum", LOWER_PLENUM_STEEL_VOL_FRAC),
+    for m in mats.values():
+        m.temperature = T_COOLANT_K
+
+    for key, name, frac, temperature_K in [
+        ("pool_ihx",     "pool_ihx",     IHX_STEEL_VOL_FRAC,          T_COOLANT_K),
+        ("upper_plenum", "upper_plenum", UPPER_PLENUM_STEEL_VOL_FRAC, T_OUTLET_K),
+        ("lower_plenum", "lower_plenum", LOWER_PLENUM_STEEL_VOL_FRAC, T_INLET_K),
     ]:
-        m = make_blended_na_steel(name, frac)
+        m = make_blended_na_steel(name, frac, temperature_K)
         m.depletable = False
         mats[key] = m
 
@@ -346,6 +371,7 @@ def make_material_from_composition(
             m.add_nuclide(nuc, grams)   # OpenMC normalises to sum = 1
     m.set_density("g/cm3", rho)
     m.depletable = depletable
+    m.temperature = T_INTERIOR_K
     return m
 
 

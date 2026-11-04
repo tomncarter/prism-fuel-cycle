@@ -4,7 +4,7 @@
 set -euo pipefail
 
 # Adjust if your cross_sections.xml is in a different subdir:
-XS_XML="/xs/endfb80-lowtemp/cross_sections.xml"
+XS_XML="/xs/endfb-viii.0-hdf5/cross_sections.xml"
 CHAIN_XML="/chain/chain_endfb80_fast.xml"
 
 docker run --rm \

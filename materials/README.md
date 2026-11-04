@@ -27,9 +27,15 @@ weighted composition.
 Computes the U-Pu-Zr (or U-Zr when `pu_hm == 0`) metal composition, applies
 `FISSILE_SCALE` to the Pu fraction only, then blends with Na and Fe/Cr at the smear
 fractions.  `make_smeared_fuel` takes each component at its theoretical density
-(alloy by specific-volume mixing of 19.05 g/cm³ HM and 6.52 g/cm³ Zr; Na 0.92;
-HT9 7.8) weighted by its volume fraction, so amounts are true atom/b-cm
-(`set_density("sum")`).
+(alloy by specific-volume mixing of 19.05 g/cm³ HM and 6.52 g/cm³ Zr; Na at the
+mean coolant temperature, ~0.851; HT9 7.8) weighted by its volume fraction, so amounts
+are true atom/b-cm (`set_density("sum")`).  The interior runs at `T_INTERIOR_K`.
+
+Every material carries a temperature: `T_INTERIOR_K` (900 K, assumed) for smeared
+interiors, `T_COOLANT_K` (703 K, mean of Triplett's 360/499 °C) for sodium and
+structure, `T_INLET_K` / `T_OUTLET_K` for the lower / upper plenums.  Sodium density
+follows `sodium_density(T)`.  Fuel and steel densities and the geometry stay at their
+fabricated values.  The model builders refuse a material with no temperature.
 
 - `pu_vector`: `"reactor_grade"` (Pu239=55%, Pu240=25%, Pu241=12%, Pu242=8%) or
   `"weapons_grade"` (93.4/6.0/0.5/0.1%).

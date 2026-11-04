@@ -94,8 +94,16 @@ OpenMC `HexagonalLattice` uses **clockwise** ring ordering starting from the +x 
 | `SMEAR_SODIUM` | 0.53 | Interior volume fraction (coolant + bond Na) |
 | `SMEAR_STEEL` | 0.20 | Interior volume fraction (cladding + wire) |
 | `ZR_METAL_FRAC` | 0.10 | Zr **weight** fraction of fuel alloy |
+| `T_INTERIOR_K` | 900 | Smeared interior temperature (assumed, no paper value) |
+| `T_COOLANT_K` | 702.65 | Mean of 360/499 °C sodium (Triplett Table I); sets Na density |
 | Thermal power | 840 MWth | Used for depletion normalization |
 | Depletion step | 30 days | Default timestep |
+
+### Temperature
+
+`run_openmc.sh` uses the official ENDF/B-VIII.0 library (250–2500 K) with temperature
+interpolation.  Runs before this change used 293.6 K data and 0.92 g/cm³ sodium, so their
+k-eff, reload loadings and matched-k enrichments are cold-state values.
 
 ### OpenMC API notes (v0.15.3)
 

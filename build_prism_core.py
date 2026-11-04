@@ -389,6 +389,13 @@ def _entropy_mesh(vg: VesselGeom, axial: Prism3D) -> openmc.RegularMesh:
     return mesh
 
 
+def _require_temperatures(materials) -> None:
+    """OpenMC silently runs any material with no temperature at 293.6 K; refuse to."""
+    missing = [m.name for m in materials if m.temperature is None]
+    if missing:
+        raise ValueError(f"Materials with no temperature set: {missing}")
+
+
 def build_model(loadout_path: str, profile: str = "standard"):
     """
     Build an OpenMC model from a core loadout JSON file.
@@ -527,7 +534,7 @@ def build_model(loadout_path: str, profile: str = "standard"):
     settings.batches = prof["batches"]
     settings.inactive = prof["inactive"]
     settings.particles = prof["particles"]
-    settings.temperature = {"method": "nearest"}
+    settings.temperature = {"method": "interpolation"}
     settings.statepoint = {"batches": [settings.batches]}
     settings.statepoint["filename"] = "statepoint_boc.h5"
     settings.entropy_mesh = _entropy_mesh(vg, axial)
@@ -660,6 +667,7 @@ def build_model(loadout_path: str, profile: str = "standard"):
     t_ax_bot_spectrum.scores = ["current"]
     tallies.append(t_ax_bot_spectrum)
 
+    _require_temperatures(materials)
     model = openmc.Model(geometry, materials, settings, tallies=tallies)
     return model
 
@@ -773,7 +781,7 @@ def build_model_per_assembly(
     settings.batches = 600
     settings.inactive = 100
     settings.particles = 5_000_000
-    settings.temperature = {"method": "nearest"}
+    settings.temperature = {"method": "interpolation"}
     settings.entropy_mesh = _entropy_mesh(vg, axial)
     bounds = [-250, -250, -axial.active_height_cm / 2.0, 250, 250, axial.active_height_cm / 2.0]
     settings.source = openmc.IndependentSource(
@@ -832,6 +840,7 @@ def build_model_per_assembly(
     t_ax_bot.scores = ["current"]
     tallies.append(t_ax_bot)
 
+    _require_temperatures(materials)
     return openmc.Model(geometry, materials, settings, tallies=tallies)
 
 
@@ -854,6 +863,9 @@ def write_run_info(run_dir: str, loadout_path: str, profile: str, deplete: bool)
         "power_MWth":     POWER_MWth,
         "active_height_cm": load_axial(loadout_path).active_height_cm,
         "fissile_scale":  t1.FISSILE_SCALE,
+        "cross_sections": os.environ.get("OPENMC_CROSS_SECTIONS"),
+        "temperatures_K": {"interior": t1.T_INTERIOR_K, "coolant": t1.T_COOLANT_K,
+                           "inlet": t1.T_INLET_K, "outlet": t1.T_OUTLET_K},
         "fuel_params":    {k: at["fuel_params"] for k, at in loadout["assembly_types"].items()
                            if "fuel_params" in at},
     }

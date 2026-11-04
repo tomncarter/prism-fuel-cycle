@@ -130,6 +130,7 @@ def _clone_material(src: openmc.Material, name: str, volume: float) -> openmc.Ma
     for nuc in src.nuclides:
         m.add_nuclide(nuc.name, nuc.percent, nuc.percent_type)
     m.set_density(src.density_units, src.density)
+    m.temperature = src.temperature
     m.volume = volume
     m.depletable = True
     return m
@@ -153,6 +154,7 @@ def _fresh_material(
         if frac > 0.0:
             m.add_nuclide(nuc, frac * hm_total)
     m.set_density("sum")
+    m.temperature = ref.temperature
     m.volume = volume
     m.depletable = True
     return m

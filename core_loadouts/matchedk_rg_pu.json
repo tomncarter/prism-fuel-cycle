@@ -39,7 +39,7 @@
     "inner_fuel": {
       "universe": "u_inner_fuel",
       "fuel_params": {
-        "pu_hm_frac": 0.14459308763158293,
+        "pu_hm_frac": 0.1468781405540912,
         "pu_vector": "reactor_grade",
         "u_vector": "depleted",
         "zr_frac": 0.1
@@ -48,7 +48,7 @@
     "outer_fuel": {
       "universe": "u_outer_fuel",
       "fuel_params": {
-        "pu_hm_frac": 0.14459308763158293,
+        "pu_hm_frac": 0.1468781405540912,
         "pu_vector": "reactor_grade",
         "u_vector": "depleted",
         "zr_frac": 0.1
@@ -62,14 +62,14 @@
     }
   },
   "loading_search": {
-    "source_loadout": "core_loadouts/fueltest_rg_pu.json",
+    "source_loadout": "core_loadouts/matchedk_rg_pu.json",
     "knob": "tru",
-    "scale": 0.6885385125313473,
+    "scale": 1.0158033344465989,
     "k_target": 1.005,
-    "keff": 1.0027478254079412,
-    "keff_unc": 0.0012615672825801187,
+    "keff": 1.0033419650920896,
+    "keff_unc": 0.0011585502363918288,
     "converged": true,
     "profile": "quick",
-    "searched_at": "2026-10-28T06:07:32+00:00"
+    "searched_at": "2026-11-04T19:26:52+00:00"
   }
 }

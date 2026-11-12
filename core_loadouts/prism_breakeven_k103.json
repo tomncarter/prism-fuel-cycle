@@ -40,7 +40,7 @@
     "inner_fuel": {
       "universe": "u_inner_fuel",
       "fuel_params": {
-        "pu_hm_frac": 0.1508688236175279,
+        "pu_hm_frac": 0.1538608681717052,
         "ma_tru_frac": 0.0,
         "zr_frac": 0.1
       }
@@ -48,7 +48,7 @@
     "outer_fuel": {
       "universe": "u_outer_fuel",
       "fuel_params": {
-        "pu_hm_frac": 0.1508688236175279,
+        "pu_hm_frac": 0.1538608681717052,
         "ma_tru_frac": 0.0,
         "zr_frac": 0.1
       }
@@ -61,14 +61,14 @@
     }
   },
   "loading_search": {
-    "source_loadout": "core_loadouts/prism_breakeven.json",
+    "source_loadout": "core_loadouts/prism_breakeven_k103.json",
     "knob": "tru",
-    "scale": 0.7184229696072757,
+    "scale": 1.0198320930887783,
     "k_target": 1.03,
-    "keff": 1.028271642022873,
-    "keff_unc": 0.0010144046925932369,
+    "keff": 1.0324875928791657,
+    "keff_unc": 0.001350931644123574,
     "converged": true,
     "profile": "quick",
-    "searched_at": "2026-10-31T06:04:27+00:00"
+    "searched_at": "2026-11-04T19:23:22+00:00"
   }
 }

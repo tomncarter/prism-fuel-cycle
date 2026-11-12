@@ -39,7 +39,7 @@
     "inner_fuel": {
       "universe": "u_inner_fuel",
       "fuel_params": {
-        "pu_hm_frac": 0.11625512969199782,
+        "pu_hm_frac": 0.11830910581633378,
         "pu_vector": "weapons_grade",
         "u_vector": "depleted",
         "zr_frac": 0.1
@@ -48,7 +48,7 @@
     "outer_fuel": {
       "universe": "u_outer_fuel",
       "fuel_params": {
-        "pu_hm_frac": 0.11625512969199782,
+        "pu_hm_frac": 0.11830910581633378,
         "pu_vector": "weapons_grade",
         "u_vector": "depleted",
         "zr_frac": 0.1
@@ -62,14 +62,14 @@
     }
   },
   "loading_search": {
-    "source_loadout": "core_loadouts/fueltest_wg_pu.json",
+    "source_loadout": "core_loadouts/matchedk_wg_pu.json",
     "knob": "tru",
-    "scale": 0.6838537040705753,
+    "scale": 1.0176678322047181,
     "k_target": 1.005,
-    "keff": 1.0039906002984529,
-    "keff_unc": 0.0012144909821189495,
+    "keff": 1.0048853023552897,
+    "keff_unc": 0.0008590507219374561,
     "converged": true,
     "profile": "quick",
-    "searched_at": "2026-10-28T06:08:38+00:00"
+    "searched_at": "2026-11-04T19:28:05+00:00"
   }
 }

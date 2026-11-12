@@ -41,8 +41,8 @@
       "fuel_params": {
         "zr_frac": 0.1,
         "u_vector": {
-          "haleu": 0.7668237426426789,
-          "depleted": 0.23317625735732106
+          "haleu": 0.7809597121397914,
+          "depleted": 0.21904028786020857
         }
       }
     },
@@ -51,8 +51,8 @@
       "fuel_params": {
         "zr_frac": 0.1,
         "u_vector": {
-          "haleu": 0.7668237426426789,
-          "depleted": 0.23317625735732106
+          "haleu": 0.7809597121397914,
+          "depleted": 0.21904028786020857
         }
       }
     },
@@ -64,14 +64,14 @@
     }
   },
   "loading_search": {
-    "source_loadout": "core_loadouts/fueltest_haleu.json",
+    "source_loadout": "core_loadouts/matchedk_haleu.json",
     "knob": "u_fissile",
-    "scale": 0.7668237426426789,
+    "scale": 1.0184344442027788,
     "k_target": 1.005,
-    "keff": 1.0041222963818723,
-    "keff_unc": 0.0010664371982154626,
+    "keff": 1.0052192510981826,
+    "keff_unc": 0.0009340654136107386,
     "converged": true,
     "profile": "quick",
-    "searched_at": "2026-10-28T05:58:28+00:00"
+    "searched_at": "2026-11-04T19:25:39+00:00"
   }
 }

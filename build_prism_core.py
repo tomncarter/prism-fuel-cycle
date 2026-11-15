@@ -380,6 +380,16 @@ def write_loading_map_with_legend(
 # -----------------------------
 # Build OpenMC model (3D)
 # -----------------------------
+def _tru_nuclides(mats) -> list[str]:
+    """Np, Pu, Am and Cm nuclides present in mats (the TRU that fissions)."""
+    names = set()
+    for m in mats:
+        for n in m.get_nuclides():
+            if 93 <= openmc.data.zam(n)[0] <= 96:
+                names.add(n)
+    return sorted(names)
+
+
 def _entropy_mesh(vg: VesselGeom, axial: Prism3D) -> openmc.RegularMesh:
     """Shannon entropy mesh over the active core, for checking source convergence."""
     mesh = openmc.RegularMesh()
@@ -636,6 +646,13 @@ def build_model(loadout_path: str, profile: str = "standard"):
         t_cr_dest.scores = ["absorption"]
         tallies.append(t_cr_dest)
 
+        # TRU conversion ratio = U-238 capture / TRU fission (ANL burner convention)
+        t_cr_tru = openmc.Tally(name="cr_tru_fission")
+        t_cr_tru.filters = [openmc.CellFilter(cr_cells)]
+        t_cr_tru.nuclides = _tru_nuclides(materials)
+        t_cr_tru.scores = ["fission"]
+        tallies.append(t_cr_tru)
+
     # (D) Vessel leakage — radial + axial, total and energy-resolved
     t_rad_total = openmc.Tally(name="leakage_radial_total")
     t_rad_total.filters = [openmc.SurfaceFilter(r_ves)]
@@ -818,6 +835,13 @@ def build_model_per_assembly(
         t_cr_dest.nuclides = ["U235", "Pu239", "Pu241"]
         t_cr_dest.scores = ["absorption"]
         tallies.append(t_cr_dest)
+
+        # TRU conversion ratio = U-238 capture / TRU fission
+        t_cr_tru = openmc.Tally(name="cr_tru_fission")
+        t_cr_tru.filters = [openmc.MaterialFilter(fuel_mats)]
+        t_cr_tru.nuclides = _tru_nuclides(fuel_mats)
+        t_cr_tru.scores = ["fission"]
+        tallies.append(t_cr_tru)
 
         # Per-assembly fission rate: power shape and peak burnup (T2.2)
         t_fis_asm = openmc.Tally(name="fission_by_assembly")

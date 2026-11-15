@@ -29,9 +29,30 @@ PU_VEC_WEAPONS_GRADE = {
     "Pu242": 0.001,
 }
 
+# LWR spent-fuel TRU (50 MWd/kg, 10-year cooling), WEIGHT % of TRU.
+# ANL-AFCI-202 Table II.1-1 (sources/README.md).  Fissile (Pu-239 + Pu-241)
+# is 55.8% of TRU; minor actinides are 12.4%.
+TRU_WT_LWR_SF = {
+    "Np237": 4.72,
+    "Pu238": 2.18, "Pu239": 47.34, "Pu240": 22.82, "Pu241": 8.42, "Pu242": 6.84,
+    "Am241": 5.61, "Am242_m1": 0.01, "Am243": 1.56,
+    "Cm243": 0.00, "Cm244": 0.46, "Cm245": 0.04,
+}
+
+
+def _wt_to_atom(wt: dict) -> dict:
+    """Weight fractions -> atom fractions (normalised)."""
+    mol = {n: w / openmc.data.atomic_mass(n) for n, w in wt.items() if w > 0.0}
+    tot = sum(mol.values())
+    return {n: v / tot for n, v in mol.items()}
+
+
+# Vectors for the driver's "pu_vector" (atom fractions).  A TRU vector may carry
+# Np/Am/Cm; the loadout's "pu_hm_frac" is then the TRU/HM fraction.
 PU_VECTORS = {
     "reactor_grade": PU_VEC_REACTOR_GRADE,
     "weapons_grade": PU_VEC_WEAPONS_GRADE,
+    "lwr_sf_tru":    _wt_to_atom(TRU_WT_LWR_SF),
 }
 
 # Default for backward compatibility

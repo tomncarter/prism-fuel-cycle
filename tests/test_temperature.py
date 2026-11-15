@@ -91,3 +91,13 @@ def test_anl_designs_fill_the_cell():
     for k in ("anl_abr_driver", "anl_sprism_driver", "anl_hcr_driver", "anl_blanket"):
         rc = resolve_recipe({"pin_design": k})
         assert rc.fuel + rc.sodium + rc.steel == pytest.approx(1.0, abs=2e-3)
+
+
+def test_lwr_sf_tru_vector():
+    from materials.tier1_homog import PU_VECTORS, TRU_WT_LWR_SF
+    assert sum(TRU_WT_LWR_SF.values()) == pytest.approx(100.0, abs=0.01)
+    v = PU_VECTORS["lwr_sf_tru"]
+    assert sum(v.values()) == pytest.approx(1.0)
+    m = make_smeared_driver("unf", 0.2, pu_vector="lwr_sf_tru", u_vector="depleted")
+    dens = m.get_nuclide_atom_densities()
+    assert {"Np237", "Am241", "Cm244"} <= set(dens)

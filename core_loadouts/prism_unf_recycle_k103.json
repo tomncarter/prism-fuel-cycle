@@ -1,6 +1,6 @@
 {
   "name": "prism_unf_recycle",
-  "description": "PRISM UNF Recycle (EG23): CR 0.72, 12-month cycle, no blankets. Layout = Triplett 2012 Fig. 8 / Table III (84 inner + 108 outer drivers). TRU 18.9% inner / 22.7% outer (Table II). Control and shutdown absorbers withdrawn (sodium-filled ducts). Pin designs (ANL-AFCI-202): drivers anl_abr_driver.",
+  "description": "PRISM UNF Recycle (EG23): CR 0.72, 12-month cycle, no blankets. Layout = Triplett 2012 Fig. 8 / Table III (84 inner + 108 outer drivers). TRU 18.9% inner / 22.7% outer (Table II). Control and shutdown absorbers withdrawn (sodium-filled ducts). TRU vector: LWR spent fuel, 50 MWd/kg, 10-y cooling (ANL-AFCI-202 Table II.1-1). Pin designs (ANL-AFCI-202): drivers anl_abr_driver.",
   "source": "Triplett, Loewen & Dooies, Nucl. Technol. 178 (2012) 186, Fig. 8, Tables II-III",
   "cycle_length_days": 365,
   "active_height_cm": 66.0,
@@ -120,17 +120,17 @@
     "inner_fuel": {
       "universe": "u_inner_fuel",
       "fuel_params": {
-        "pu_hm_frac": 0.15357552039002376,
-        "ma_tru_frac": 0.0,
-        "zr_frac": 0.1
+        "pu_hm_frac": 0.1850977162927748,
+        "zr_frac": 0.1,
+        "pu_vector": "lwr_sf_tru"
       }
     },
     "outer_fuel": {
       "universe": "u_outer_fuel",
       "fuel_params": {
-        "pu_hm_frac": 0.184453138246219,
-        "ma_tru_frac": 0.0,
-        "zr_frac": 0.1
+        "pu_hm_frac": 0.22231313015058138,
+        "zr_frac": 0.1,
+        "pu_vector": "lwr_sf_tru"
       }
     },
     "control": {
@@ -158,12 +158,12 @@
   "loading_search": {
     "source_loadout": "core_loadouts/prism_unf_recycle.json",
     "knob": "tru",
-    "scale": 0.8125688909525066,
+    "scale": 0.9793529962580677,
     "k_target": 1.03,
-    "keff": 1.0279297918028882,
-    "keff_unc": 0.001135183423127103,
+    "keff": 1.0308116999476151,
+    "keff_unc": 0.0009728419492727646,
     "converged": true,
     "profile": "quick",
-    "searched_at": "2026-11-15T18:09:06+00:00"
+    "searched_at": "2026-11-15T18:24:10+00:00"
   }
 }

@@ -37,6 +37,9 @@ class UniverseFactory:
             # GEMs (sodium-flooded tube, normal operating condition)
             "u_gem":               _gem,
             "u_source":            self._solid_assy("source", self.m["sodium"]),
+            # Control / shutdown position with the absorber withdrawn above the
+            # core: a sodium-filled duct over the active height (rods-out state)
+            "u_control_withdrawn": self._solid_assy("control_withdrawn", self.m["sodium"]),
             # Empty corner notch positions — no duct, just pool sodium
             "u_empty":             self._sodium_assy("empty"),
         }

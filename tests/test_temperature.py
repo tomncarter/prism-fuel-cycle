@@ -47,3 +47,47 @@ def test_temperature_survives_xml_round_trip(tmp_path):
     path = tmp_path / "materials.xml"
     openmc.Materials([make_smeared_driver("m", 0.15, u_vector="depleted")]).export_to_xml(path)
     assert openmc.Materials.from_xml(path)[0].temperature == T_INTERIOR_K
+
+
+# ---- pin-design volume fractions ---------------------------------------------
+from geometry.params import AssemblyGeom
+from materials.tier1_homog import (
+    LEGACY_RECIPE, PIN_DESIGNS, recipe_from_cell_fractions, resolve_recipe,
+)
+
+
+def test_cell_to_interior_round_trip():
+    """Interior fractions x interior area + explicit duct/gap == the book's cell fractions."""
+    g = AssemblyGeom()
+    a = g.assembly_pitch_cm ** 2
+    f_in = g.duct_inner_flat_to_flat_cm ** 2 / a
+    f_duct = (g.duct_flat_to_flat_cm ** 2 - g.duct_inner_flat_to_flat_cm ** 2) / a
+    f_gap = 1 - g.duct_flat_to_flat_cm ** 2 / a
+    for d in PIN_DESIGNS.values():
+        rc = recipe_from_cell_fractions(d["fuel"], d["coolant"], d["structure"], bond=d["bond"])
+        assert rc.fuel * f_in == pytest.approx(d["fuel"])
+        assert rc.sodium * f_in + f_gap == pytest.approx(d["coolant"] + d["bond"])
+        assert rc.steel * f_in + f_duct == pytest.approx(d["structure"])
+
+
+def test_resolve_recipe_options():
+    assert resolve_recipe({"pin_design": "legacy"}) == LEGACY_RECIPE
+    assert resolve_recipe({}) == resolve_recipe({"pin_design": "anl_sprism_driver"})
+    rc = resolve_recipe({"volume_fractions": {"basis": "interior", "fuel": 0.3, "coolant": 0.4, "structure": 0.2}})
+    assert (rc.fuel, rc.sodium, rc.steel) == (0.3, 0.4, 0.2)
+    with pytest.raises(ValueError):
+        resolve_recipe({"pin_design": "nope"})
+
+
+def test_fuel_fraction_sets_hm_density():
+    hm = lambda m: sum(d for n, d in m.get_nuclide_atom_densities().items() if n.startswith(("U", "Pu")))
+    a = make_smeared_driver("a", 0.2, u_vector="depleted", recipe=resolve_recipe({"pin_design": "tc_d090"}))
+    b = make_smeared_driver("b", 0.2, u_vector="depleted", recipe=resolve_recipe({"pin_design": "tc_d120"}))
+    assert hm(b) / hm(a) == pytest.approx(0.376 / 0.279, rel=1e-6)
+
+
+def test_anl_designs_fill_the_cell():
+    """ANL fractions sum to 100% of the cell, so the interior has no void."""
+    for k in ("anl_abr_driver", "anl_sprism_driver", "anl_hcr_driver", "anl_blanket"):
+        rc = resolve_recipe({"pin_design": k})
+        assert rc.fuel + rc.sodium + rc.steel == pytest.approx(1.0, abs=2e-3)

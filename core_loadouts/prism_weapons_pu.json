@@ -1,21 +1,197 @@
 {
   "name": "prism_weapons_pu",
-  "description": "PRISM Weapons Pu Consumption: CR=1.00, 26-month cycle. ~22.9% fissile Pu (weapons-grade vector). Denatures WG-Pu through irradiation to reactor-grade isotopics (Triplett 2012 Table II).",
-  "cycle_length_days": 791,
+  "description": "PRISM Weapons Pu Consumption: CR 1.00, 26-month cycle, driver TRU 18.3 wt% (17.2% fissile Pu, weapons-grade vector), Table II. Internal-blanket placement (rings 1, 2, 4) is a project choice: Table III gives 42 internal blankets but no map. Radial blanket = ring 8 minus corners (42). Single driver TRU content; inner/outer split only names zones. DU blankets (project baseline). Absorbers withdrawn. Pin designs (ANL-AFCI-202): drivers anl_sprism_driver, blankets anl_blanket.",
+  "source": "Triplett, Loewen & Dooies, Nucl. Technol. 178 (2012) 186, Tables II-III; rod/GEM/source/notch positions from Fig. 8",
+  "cycle_length_days": 790,
   "active_height_cm": 106.7,
+  "pin_design": "anl_sprism_driver",
   "layout": {
-    "mode": "rings",
+    "mode": "rings_with_overrides",
     "rings": [
-      { "range": [0, 4], "type": "inner_fuel" },
-      { "range": [5, 8], "type": "outer_fuel" },
-      { "range": [9, 10], "type": "reflector" },
-      { "range": [11, 11], "type": "shield" }
+      {
+        "range": [
+          0,
+          2
+        ],
+        "type": "internal_blanket"
+      },
+      {
+        "range": [
+          3,
+          3
+        ],
+        "type": "inner_fuel"
+      },
+      {
+        "range": [
+          4,
+          4
+        ],
+        "type": "internal_blanket"
+      },
+      {
+        "range": [
+          5,
+          7
+        ],
+        "type": "outer_fuel"
+      },
+      {
+        "range": [
+          8,
+          8
+        ],
+        "type": "radial_blanket"
+      },
+      {
+        "range": [
+          9,
+          10
+        ],
+        "type": "reflector"
+      },
+      {
+        "range": [
+          11,
+          11
+        ],
+        "type": "shield"
+      }
+    ],
+    "overrides": [
+      {
+        "comment": "Triplett 2012 Fig. 8. (q, r) frame: (0, n) straight up, (n, -n) lower-right, (-n, 0) lower-left."
+      },
+      {
+        "comment": "Centre: neutron source"
+      },
+      {
+        "q": 0,
+        "r": 0,
+        "type": "source"
+      },
+      {
+        "comment": "Ring 3 corners, alternating: 3 control (up, lower-right, lower-left) + 3 ultimate shutdown"
+      },
+      {
+        "q": 0,
+        "r": 3,
+        "sym": 3,
+        "type": "control"
+      },
+      {
+        "q": -3,
+        "r": 3,
+        "sym": 3,
+        "type": "ultimate_shutdown"
+      },
+      {
+        "comment": "Ring 6 edge midpoints: 6 control"
+      },
+      {
+        "q": 3,
+        "r": 3,
+        "sym": 6,
+        "type": "control"
+      },
+      {
+        "comment": "Ring 7 corners: 6 gas expansion modules"
+      },
+      {
+        "q": 0,
+        "r": 7,
+        "sym": 6,
+        "type": "gem"
+      },
+      {
+        "comment": "Corner notch: ring-8 corners reflector, ring-10 corners shield, ring-11 corners empty"
+      },
+      {
+        "q": 0,
+        "r": 8,
+        "sym": 6,
+        "type": "reflector"
+      },
+      {
+        "q": 0,
+        "r": 10,
+        "sym": 6,
+        "type": "shield"
+      },
+      {
+        "q": 0,
+        "r": 11,
+        "sym": 6,
+        "type": "empty"
+      }
     ]
   },
+  "expected_counts": {
+    "inner_fuel": 12,
+    "outer_fuel": 96,
+    "internal_blanket": 42,
+    "radial_blanket": 42,
+    "control": 9,
+    "ultimate_shutdown": 3,
+    "source": 1,
+    "gem": 6,
+    "reflector": 114,
+    "shield": 66,
+    "empty": 6
+  },
   "assembly_types": {
-    "inner_fuel": { "universe": "u_inner_fuel", "fuel_params": { "pu_hm_frac": 0.229, "ma_tru_frac": 0.0, "zr_frac": 0.10, "pu_vector": "weapons_grade" } },
-    "outer_fuel": { "universe": "u_outer_fuel", "fuel_params": { "pu_hm_frac": 0.229, "ma_tru_frac": 0.0, "zr_frac": 0.10, "pu_vector": "weapons_grade" } },
-    "reflector":  { "universe": "u_reflector" },
-    "shield":     { "universe": "u_shield" }
+    "inner_fuel": {
+      "universe": "u_inner_fuel",
+      "fuel_params": {
+        "pu_hm_frac": 0.183,
+        "ma_tru_frac": 0.0,
+        "zr_frac": 0.1,
+        "pu_vector": "weapons_grade"
+      }
+    },
+    "outer_fuel": {
+      "universe": "u_outer_fuel",
+      "fuel_params": {
+        "pu_hm_frac": 0.183,
+        "ma_tru_frac": 0.0,
+        "zr_frac": 0.1,
+        "pu_vector": "weapons_grade"
+      }
+    },
+    "internal_blanket": {
+      "universe": "u_internal_blanket",
+      "fuel_params": {
+        "u235_frac": 0.002,
+        "pin_design": "anl_blanket"
+      }
+    },
+    "radial_blanket": {
+      "universe": "u_radial_blanket",
+      "fuel_params": {
+        "u235_frac": 0.002,
+        "pin_design": "anl_blanket"
+      }
+    },
+    "control": {
+      "universe": "u_control_withdrawn"
+    },
+    "ultimate_shutdown": {
+      "universe": "u_control_withdrawn"
+    },
+    "source": {
+      "universe": "u_source"
+    },
+    "gem": {
+      "universe": "u_gem"
+    },
+    "reflector": {
+      "universe": "u_reflector"
+    },
+    "shield": {
+      "universe": "u_shield"
+    },
+    "empty": {
+      "universe": "u_empty"
+    }
   }
 }

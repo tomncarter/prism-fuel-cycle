@@ -760,6 +760,8 @@ if __name__ == "__main__":
                     help="BOEC k-eff above which a reload halts the run (default: 1.010, T7.4)")
     ap.add_argument("--max-step-days", type=float, default=60.0,
                     help="longest depletion step after the short leading steps (default: 60)")
+    ap.add_argument("--no-burnup-map", action="store_true",
+                    help="skip the per-assembly burnup table and map at the end of the run")
     opts = ap.parse_args()
 
     name = Path(opts.loadout).stem
@@ -782,3 +784,18 @@ if __name__ == "__main__":
     final_state = runner.run(n_cycles=opts.cycles, stop_at_equilibrium=not opts.no_stop)
     print(f"\nCompleted {len(final_state.cycle_records)} cycles.")
     print(f"State saved to: {runner._state_path}")
+
+    if not opts.no_burnup_map:
+        # Post-processing only: a failure here must not look like a failed run
+        try:
+            from fuel_cycle.burnup_map import burnup_table, plot_cycle
+            df = burnup_table(Path(run_dir))
+            out = Path(run_dir) / "burnup"
+            out.mkdir(exist_ok=True)
+            df.to_parquet(out / "burnup.parquet", index=False)
+            last = int(df.cycle.max())
+            plot_cycle(df, last, out / f"cycle_{last:03d}_burnup.png")
+            print(f"Burnup table and cycle-{last} map: {out}/")
+        except Exception as exc:   # noqa: BLE001
+            print(f"WARNING: burnup map failed ({exc}); run "
+                  f"`python -m fuel_cycle.burnup_map {run_dir}` to retry")

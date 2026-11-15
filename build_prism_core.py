@@ -844,8 +844,14 @@ def build_model_per_assembly(
     return openmc.Model(geometry, materials, settings, tallies=tallies)
 
 
+def _with_pin_design(loadout: dict) -> dict:
+    from core_maps.loader import _with_pin_design as inject
+    return {k: at.get("fuel_params") for k, at in inject(loadout).items()}
+
+
 def write_run_info(run_dir: str, loadout_path: str, profile: str, deplete: bool) -> None:
     """Record loadout + profile + tuning constants so postprocess can attach them to metadata."""
+    import dataclasses
     import json
     import materials.tier1_homog as t1
 
@@ -868,6 +874,12 @@ def write_run_info(run_dir: str, loadout_path: str, profile: str, deplete: bool)
                            "inlet": t1.T_INLET_K, "outlet": t1.T_OUTLET_K},
         "fuel_params":    {k: at["fuel_params"] for k, at in loadout["assembly_types"].items()
                            if "fuel_params" in at},
+        "pin_design":     loadout.get("pin_design"),
+        "duct_thickness_cm": AssemblyGeom().duct_thickness_cm,
+        "interior_volume_fractions": {
+            k: dataclasses.asdict(t1.resolve_recipe(fp))
+            for k, fp in _with_pin_design(loadout).items() if fp is not None
+        },
     }
     with open(os.path.join(run_dir, "run_info.json"), "w") as f:
         json.dump(info, f, indent=2)

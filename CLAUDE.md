@@ -26,6 +26,22 @@ particles/batches and the depletion schedule — see `RUN_PROFILES` in
 ./run_fuel_tests.sh quick --deplete   # ~1-year depletion (6 steps)
 ```
 
+Geometry figures (2-D slices + 3-D ray-traced views, plot mode only, no transport):
+```bash
+./run_openmc.sh python visualize_geometry.py [loadout]   # default prism_breeder → figures/geometry/<loadout>/
+```
+
+Fuel-volume-fraction sweep (loading search per Table 14-3 pin design, then TRU and CR):
+```bash
+./run_openmc.sh python -m fuel_cycle.vf_sweep run core_loadouts/prism_breeder.json   # → runs/vf_sweep/
+./run_openmc.sh python -m fuel_cycle.vf_sweep summarize                              # summary.csv + vf_sweep.png
+```
+
+Per-assembly burnup for a cycle run (written automatically when `fuel_cycle.cycle_runner` finishes):
+```bash
+./run_openmc.sh python -m fuel_cycle.burnup_map runs/<run>__cycles__cycle [--cycle N | --all]   # → <run>/burnup/
+```
+
 Files under `runs/` are written by the container as root — delete them with
 `./run_openmc.sh rm -rf runs/<dir>`.
 
@@ -60,9 +76,14 @@ JSON loadout → core_maps/loader.py → build_prism_core.py → OpenMC XML → 
 
 ### JSON loadout format
 
-Core configurations live in `core_loadouts/*.json`. Two layout modes:
-- `"rings"` — compact range notation (e.g., `{"range": [0, 3], "type": "inner_fuel"}`)
+Core configurations live in `core_loadouts/*.json`. Layout modes:
+- `"rings_with_overrides"` — ring ranges, then per-position overrides; `"sym": 3|6` expands an
+  override to its rotational images. Used by the four Triplett cores.
+- `"rings"` — ring ranges only (e.g., `{"range": [0, 3], "type": "inner_fuel"}`)
 - `"positions"` — explicit per-slot `(q, r)` coordinates (for shuffled Tier-2 states)
+
+`"expected_counts"` ({type: n}) makes the loader fail if the core doesn't match (Triplett
+Table III for the PRISM cores). `tests/test_loader.py` loads every loadout.
 
 A loadout may set `active_height_cm` (default 101.6, the `Prism3D` value).
 
@@ -70,7 +91,12 @@ Each `assembly_type` entry specifies the OpenMC universe name and `fuel_params` 
 
 ### Hex lattice convention
 
-OpenMC `HexagonalLattice` uses **clockwise** ring ordering starting from the +x direction. `hexmap.ring_angle_sort` sorts with `(start - a) % 360` ascending to match this convention. Getting this wrong silently mis-assigns assembly types.
+The OpenMC `HexLattice` (default orientation) has flat-top cells in vertical columns; each
+ring starts directly above the centre and runs **clockwise**. `hexmap.axial_to_xy` must use
+the same flat-top frame (`(0, n)` straight up), and `ring_angle_sort` sorts clockwise from
+90°. Before 2026-11-15 `axial_to_xy` was pointy-top, which shifted each ring by about n/2
+cells, so overrides (rods, GEMs, notches) landed in the wrong slots. `tests/test_hexmap.py`
+checks every slot against the real lattice.
 
 ### Root universe structure
 
@@ -83,16 +109,14 @@ OpenMC `HexagonalLattice` uses **clockwise** ring ordering starting from the +x 
 - `blanket_breeding_internal` / `blanket_breeding_radial` — absorption + fission scores (separate tallies, not combined — ordering was non-deterministic with a shared CellFilter)
 - `leakage_radial_total`, `leakage_axial_top/bot` + spectra — on vacuum boundary surfaces
 
-### Key constants (all in `materials/tier1_homog.py`)
+### Key constants (all in `materials/tier1_homog.py`; assembly geometry in `geometry/params.py` is ANL-AFCI-202's 16.142 cm pitch / 0.394 cm duct)
 
 | Constant | Value | Notes |
 |---|---|---|
 | `FISSILE_SCALE` | 1.0 | Criticality tuning knob — scales Pu/fissile content |
 | `PU_HM_INNER` | 0.20 | Inner driver Pu/HM atom fraction |
 | `PU_HM_OUTER` | 0.17 | Outer driver Pu/HM atom fraction |
-| `SMEAR_FUEL_METAL` | 0.27 | Interior volume fraction (fuel slug, 75% smear) |
-| `SMEAR_SODIUM` | 0.53 | Interior volume fraction (coolant + bond Na) |
-| `SMEAR_STEEL` | 0.20 | Interior volume fraction (cladding + wire) |
+| `PIN_DESIGNS` / `DEFAULT_PIN_DESIGN` | `anl_sprism_driver` | Whole-cell volume fractions per pin design, converted to interior fractions around the explicit duct/gap (`recipe_from_cell_fractions`; bond Na → sodium). Sources: ANL-AFCI-202 (`sources/134264.pdf`: `anl_abr_driver`, `anl_sprism_driver`, `anl_hcr_driver` 271 pins; `anl_blanket` 127 pins) and Till & Chang Table 14-3 (`tc_d090`–`tc_d120`). Loadouts set top-level `"pin_design"`, per-type `fuel_params.pin_design`, or `"volume_fractions"`; `"legacy"` = pre-2026-11-15 interior 0.27/0.53/0.20 |
 | `ZR_METAL_FRAC` | 0.10 | Zr **weight** fraction of fuel alloy |
 | `T_INTERIOR_K` | 900 | Smeared interior temperature (assumed, no paper value) |
 | `T_COOLANT_K` | 702.65 | Mean of 360/499 °C sodium (Triplett Table I); sets Na density |

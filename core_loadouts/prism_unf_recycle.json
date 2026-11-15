@@ -1,25 +1,158 @@
 {
   "name": "prism_unf_recycle",
-  "description": "PRISM UNF Recycle (EG23): CR=0.72, 12-month cycle, NU blankets. Inner 18.9% TRU, outer 22.7% TRU (Triplett 2012 Table II).",
+  "description": "PRISM UNF Recycle (EG23): CR 0.72, 12-month cycle, no blankets. Layout = Triplett 2012 Fig. 8 / Table III (84 inner + 108 outer drivers). TRU 18.9% inner / 22.7% outer (Table II). Control and shutdown absorbers withdrawn (sodium-filled ducts). Pin designs (ANL-AFCI-202): drivers anl_abr_driver.",
+  "source": "Triplett, Loewen & Dooies, Nucl. Technol. 178 (2012) 186, Fig. 8, Tables II-III",
   "cycle_length_days": 365,
   "active_height_cm": 66.0,
+  "pin_design": "anl_abr_driver",
   "layout": {
-    "mode": "rings",
+    "mode": "rings_with_overrides",
     "rings": [
-      { "range": [0, 3], "type": "inner_fuel" },
-      { "range": [4, 4], "type": "internal_blanket" },
-      { "range": [5, 7], "type": "outer_fuel" },
-      { "range": [8, 8], "type": "radial_blanket" },
-      { "range": [9, 10], "type": "reflector" },
-      { "range": [11, 11], "type": "shield" }
+      {
+        "range": [
+          0,
+          5
+        ],
+        "type": "inner_fuel"
+      },
+      {
+        "range": [
+          6,
+          8
+        ],
+        "type": "outer_fuel"
+      },
+      {
+        "range": [
+          9,
+          10
+        ],
+        "type": "reflector"
+      },
+      {
+        "range": [
+          11,
+          11
+        ],
+        "type": "shield"
+      }
+    ],
+    "overrides": [
+      {
+        "comment": "Triplett 2012 Fig. 8. (q, r) frame: (0, n) straight up, (n, -n) lower-right, (-n, 0) lower-left."
+      },
+      {
+        "comment": "Centre: neutron source"
+      },
+      {
+        "q": 0,
+        "r": 0,
+        "type": "source"
+      },
+      {
+        "comment": "Ring 3 corners, alternating: 3 control (up, lower-right, lower-left) + 3 ultimate shutdown"
+      },
+      {
+        "q": 0,
+        "r": 3,
+        "sym": 3,
+        "type": "control"
+      },
+      {
+        "q": -3,
+        "r": 3,
+        "sym": 3,
+        "type": "ultimate_shutdown"
+      },
+      {
+        "comment": "Ring 6 edge midpoints: 6 control"
+      },
+      {
+        "q": 3,
+        "r": 3,
+        "sym": 6,
+        "type": "control"
+      },
+      {
+        "comment": "Ring 7 corners: 6 gas expansion modules"
+      },
+      {
+        "q": 0,
+        "r": 7,
+        "sym": 6,
+        "type": "gem"
+      },
+      {
+        "comment": "Corner notch: ring-8 corners reflector, ring-10 corners shield, ring-11 corners empty"
+      },
+      {
+        "q": 0,
+        "r": 8,
+        "sym": 6,
+        "type": "reflector"
+      },
+      {
+        "q": 0,
+        "r": 10,
+        "sym": 6,
+        "type": "shield"
+      },
+      {
+        "q": 0,
+        "r": 11,
+        "sym": 6,
+        "type": "empty"
+      }
     ]
   },
+  "expected_counts": {
+    "inner_fuel": 84,
+    "outer_fuel": 108,
+    "control": 9,
+    "ultimate_shutdown": 3,
+    "source": 1,
+    "gem": 6,
+    "reflector": 114,
+    "shield": 66,
+    "empty": 6
+  },
   "assembly_types": {
-    "inner_fuel":       { "universe": "u_inner_fuel",       "fuel_params": { "pu_hm_frac": 0.189, "ma_tru_frac": 0.0, "zr_frac": 0.10 } },
-    "outer_fuel":       { "universe": "u_outer_fuel",       "fuel_params": { "pu_hm_frac": 0.227, "ma_tru_frac": 0.0, "zr_frac": 0.10 } },
-    "internal_blanket": { "universe": "u_internal_blanket", "fuel_params": { "u235_frac": 0.00711 } },
-    "radial_blanket":   { "universe": "u_radial_blanket",   "fuel_params": { "u235_frac": 0.00711 } },
-    "reflector":        { "universe": "u_reflector" },
-    "shield":           { "universe": "u_shield" }
+    "inner_fuel": {
+      "universe": "u_inner_fuel",
+      "fuel_params": {
+        "pu_hm_frac": 0.189,
+        "ma_tru_frac": 0.0,
+        "zr_frac": 0.1
+      }
+    },
+    "outer_fuel": {
+      "universe": "u_outer_fuel",
+      "fuel_params": {
+        "pu_hm_frac": 0.227,
+        "ma_tru_frac": 0.0,
+        "zr_frac": 0.1
+      }
+    },
+    "control": {
+      "universe": "u_control_withdrawn"
+    },
+    "ultimate_shutdown": {
+      "universe": "u_control_withdrawn"
+    },
+    "source": {
+      "universe": "u_source"
+    },
+    "gem": {
+      "universe": "u_gem"
+    },
+    "reflector": {
+      "universe": "u_reflector"
+    },
+    "shield": {
+      "universe": "u_shield"
+    },
+    "empty": {
+      "universe": "u_empty"
+    }
   }
 }

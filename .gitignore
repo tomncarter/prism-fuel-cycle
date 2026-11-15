@@ -34,3 +34,6 @@ __pycache__/
 
 # Overnight run logs
 logs/
+
+# Reference PDFs: cited in sources/README.md, not redistributed
+sources/*.pdf

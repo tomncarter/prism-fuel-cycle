@@ -23,7 +23,7 @@ ANL-AFCI-202 and Till & Chang, *Plentiful Energy*. Sources are listed in `source
 | `prism_breakeven` | Self-sustaining closed cycle | 1.06 | 23 mo | 21.1 wt% | Reactor-grade Pu |
 | `prism_breeder` | Net fissile production | 1.23 | 23 mo | 20.9 wt% | Reactor-grade Pu |
 | `prism_weapons_pu` | Weapons-Pu disposition | 1.00 | 26 mo | 18.3 wt% | Weapons-grade Pu |
-| `prism_haleu` | HALEU startup (project design) | — | 23 mo | none (17.8 % U-235) | HALEU (19.75 %) + DU |
+| `prism_haleu` | HALEU startup (project design) | — | 23 mo | none (16.5 % U-235, Natrium DEMO) | HALEU (19.75 %) + DU |
 
 Variants:
 
@@ -52,11 +52,12 @@ Two sets of HALEU loadouts cover this:
 |---|---|---|---|
 | `fueltest_haleu` | All-driver rings 0–8 | 16.5 % (fixed) | Fresh-fuel screen next to WG-U, RG-Pu, WG-Pu |
 | `matchedk_haleu` | All-driver rings 0–8 | searched to k = 1.005 | Matched-reactivity comparison |
-| `prism_haleu` | Triplett geometry, no internal blankets | 17.8 % starting value | Full HALEU startup core |
+| `prism_haleu` | Triplett geometry, no internal blankets | 16.5 % (Natrium DEMO) | Full HALEU startup core |
+| `prism_haleu_k103` | Same | 15.7 %, searched to BOC k = 1.03 | Matched-reactivity HALEU core |
 
 Each loadout mixes HALEU and DU through `u_vector`, which names vectors from
 `U_VECTORS` in `materials/tier1_homog.py` with their weights, for example
-`{"haleu": 0.9, "depleted": 0.1}`. `haleu` is 19.75 % U-235 with 0.18 % U-234. For a
+`{"haleu": 0.8338, "depleted": 0.1662}`. `haleu` is 19.75 % U-235 with 0.18 % U-234. For a
 uranium-only core, `loading_search` scales the enriched share of the blend (the
 `u_fissile` knob) and stops at pure HALEU.
 
@@ -72,9 +73,8 @@ uranium-only core, `loading_search` scales the enriched share of the blend (the
 ./run_fuel_tests.sh quick [--deplete]
 ```
 
-`prism_haleu.json` hasn't been run yet. If the fresh core is still below the target k
-at the full 19.75 % (the search stops at the upper bound), the core needs more drivers
-or a smaller radial blanket, because the enrichment can't go higher.
+At 16.5 % the fresh core has BOC k ≈ 1.05 (`quick`). The search to k = 1.03 lands at
+15.7 % (`prism_haleu_k103`), well under the 19.75 % ceiling.
 
 `prism_haleu` can't go through `fuel_cycle.cycle_runner` yet. A reload's TRU fraction is
 the startup fraction times the search scale, which is zero for a U-only driver. The runner

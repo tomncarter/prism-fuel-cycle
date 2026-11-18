@@ -1,7 +1,7 @@
 {
   "name": "prism_haleu",
-  "description": "PRISM HALEU startup core: U-10Zr drivers, no Pu, at a 0.90/0.10 HALEU/DU blend (17.8% U-235; ceiling 19.75%). Triplett breakeven geometry (Fig. 8 rods, USS, GEMs, source, notches; 23-month cycle; active height 106.7 cm), but the 42 internal blankets are drivers: a fresh-HALEU core with internal blankets would need about 24% U-235, above the HALEU limit. Inner fuel = rings 0-4, outer = rings 5-7; one enrichment, so inner/outer only name zones. Radial blanket = ring 8 minus corners (42), DU. Absorbers withdrawn. Pin designs (ANL-AFCI-202): drivers anl_sprism_driver, blankets anl_blanket. Search the enrichment with fuel_cycle.loading_search (u_fissile knob).",
-  "source": "Project design. Geometry from Triplett, Loewen & Dooies, Nucl. Technol. 178 (2012) 186, Fig. 8 / Table III; HALEU vector from materials U_VECTORS['haleu']",
+  "description": "PRISM HALEU startup core: U-10Zr drivers, no Pu, at a 0.8338/0.1662 HALEU/DU blend (16.5% U-235, the Natrium DEMO advanced-fuel enrichment; ceiling 19.75%). Triplett breakeven geometry (Fig. 8 rods, USS, GEMs, source, notches; 23-month cycle; active height 106.7 cm), but the 42 internal blankets are drivers: a fresh-HALEU core with internal blankets would need about 24% U-235, above the HALEU limit. Inner fuel = rings 0-4, outer = rings 5-7; one enrichment, so inner/outer only name zones. Radial blanket = ring 8 minus corners (42), DU. Absorbers withdrawn. Pin designs (ANL-AFCI-202): drivers anl_sprism_driver, blankets anl_blanket. Search the enrichment with fuel_cycle.loading_search (u_fissile knob).",
+  "source": "Project design. Geometry from Triplett, Loewen & Dooies, Nucl. Technol. 178 (2012) 186, Fig. 8 / Table III; HALEU vector from materials U_VECTORS['haleu']; 16.5% U-235 from P. Hejzlar, 'Fuel Cycle and Waste Management', TerraPower presentation (2021): 'Natrium DEMO with advanced fuel will operate with 16.5% enriched U loads to 150 MWd/kg'",
   "cycle_length_days": 700,
   "active_height_cm": 106.7,
   "pin_design": "anl_sprism_driver",
@@ -130,8 +130,8 @@
       "fuel_params": {
         "zr_frac": 0.1,
         "u_vector": {
-          "haleu": 0.9,
-          "depleted": 0.1
+          "haleu": 0.8338,
+          "depleted": 0.1662
         }
       }
     },
@@ -140,8 +140,8 @@
       "fuel_params": {
         "zr_frac": 0.1,
         "u_vector": {
-          "haleu": 0.9,
-          "depleted": 0.1
+          "haleu": 0.8338,
+          "depleted": 0.1662
         }
       }
     },

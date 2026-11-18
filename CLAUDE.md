@@ -50,13 +50,15 @@ Rebuild the Docker image after Dockerfile changes:
 docker build -t prism-openmc .
 ```
 
-Exit code 127 from `./run_openmc.sh` is harmless (shell wrapper artifact).
+`./run_openmc.sh` pins each container to one NUMA node (24 cores / 48 threads):
+`NUMA_NODE=0|1` picks the node (default 0), `THREADS=n` overrides the thread count
+(default: all of the node's threads). Run two jobs at once on nodes 0 and 1.
 
 ## Architecture
 
 ### Model tiers
 - **Tier 1 (current)**: Homogenized zones, shared material per assembly type. Fast but no spatial burnup detail.
-- **Tier 2 (planned)**: Unique material per assembly, GEMs/control rods, criticality search, equilibrium cycle via `fuel_cycle/`.
+- **Tier 2 (working; benchmarking against Triplett Table II)**: Unique material per assembly, GEMs/control rods, criticality search, equilibrium cycle via `fuel_cycle/`.
 - **Tier 3 (future)**: Pin-level geometry.
 
 ### Core data flow
@@ -72,7 +74,7 @@ JSON loadout → core_maps/loader.py → build_prism_core.py → OpenMC XML → 
 3. **`materials/tier1_homog.py`** — All Tier-1 material definitions. Tunable constants (`FISSILE_SCALE`, `PU_HM_INNER/OUTER`, smear fractions) live at the top. `make_materials_from_loadout()` is the primary factory.
 4. **`core_maps/`** — `loader.py` parses JSON loadouts into `AssemblyPosition` objects. `abr_like_assignment.py` provides the default ring-based zoning (397 assemblies, rings 0–11).
 5. **`postprocess.py`** — Reads all `runs/*/` directories, extracts depletion results into 5 Parquet files under `results/`.
-6. **`fuel_cycle/`** — Tier-2 infrastructure (not yet wired to main build): `state.py` (persistent cycle JSON), `nfrc.py` (electrorefining + fuel fab), `batch_manager.py` (discharge/cooling/reload scheduling), `cycle_runner.py` (per-cycle orchestration).
+6. **`fuel_cycle/`** — Tier-2 multi-cycle loop, run via `python -m fuel_cycle.cycle_runner`; builds per-assembly models with `build_prism_core.build_model_per_assembly`: `state.py` (persistent cycle JSON), `nfrc.py` (electrorefining + fuel fab), `batch_manager.py` (discharge/cooling/reload scheduling), `cycle_runner.py` (per-cycle orchestration, reload k search), plus `loading_search.py`, `search.py`, `mass_balance.py`, `burnup_map.py`, `vf_sweep.py`. Drivers with no Pu (HALEU, WG-U) can't be reloaded yet (`NotImplementedError` in `CycleRunner._reload`).
 
 ### JSON loadout format
 
@@ -104,7 +106,7 @@ checks every slot against the real lattice.
 
 ### Tallies
 
-- `fission_split` — fission rate per zone (CellFilter on all fuel cells)
+- `fission_inner` / `fission_outer` — fission rate per driver zone (CellFilter on that zone's interior cells)
 - `flux_spectrum_*` — energy-binned flux per zone
 - `blanket_breeding_internal` / `blanket_breeding_radial` — absorption + fission scores (separate tallies, not combined — ordering was non-deterministic with a shared CellFilter)
 - `leakage_radial_total`, `leakage_axial_top/bot` + spectra — on vacuum boundary surfaces

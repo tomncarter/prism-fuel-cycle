@@ -1,0 +1,177 @@
+{
+  "name": "prism_haleu",
+  "description": "PRISM HALEU startup core: U-10Zr drivers, no Pu, at a 0.90/0.10 HALEU/DU blend (17.8% U-235; ceiling 19.75%). Triplett breakeven geometry (Fig. 8 rods, USS, GEMs, source, notches; 23-month cycle; active height 106.7 cm), but the 42 internal blankets are drivers: a fresh-HALEU core with internal blankets would need about 24% U-235, above the HALEU limit. Inner fuel = rings 0-4, outer = rings 5-7; one enrichment, so inner/outer only name zones. Radial blanket = ring 8 minus corners (42), DU. Absorbers withdrawn. Pin designs (ANL-AFCI-202): drivers anl_sprism_driver, blankets anl_blanket. Search the enrichment with fuel_cycle.loading_search (u_fissile knob).",
+  "source": "Project design. Geometry from Triplett, Loewen & Dooies, Nucl. Technol. 178 (2012) 186, Fig. 8 / Table III; HALEU vector from materials U_VECTORS['haleu']",
+  "cycle_length_days": 700,
+  "active_height_cm": 106.7,
+  "pin_design": "anl_sprism_driver",
+  "layout": {
+    "mode": "rings_with_overrides",
+    "rings": [
+      {
+        "range": [
+          0,
+          4
+        ],
+        "type": "inner_fuel"
+      },
+      {
+        "range": [
+          5,
+          7
+        ],
+        "type": "outer_fuel"
+      },
+      {
+        "range": [
+          8,
+          8
+        ],
+        "type": "radial_blanket"
+      },
+      {
+        "range": [
+          9,
+          10
+        ],
+        "type": "reflector"
+      },
+      {
+        "range": [
+          11,
+          11
+        ],
+        "type": "shield"
+      }
+    ],
+    "overrides": [
+      {
+        "comment": "Triplett 2012 Fig. 8. (q, r) frame: (0, n) straight up, (n, -n) lower-right, (-n, 0) lower-left."
+      },
+      {
+        "comment": "Centre: neutron source"
+      },
+      {
+        "q": 0,
+        "r": 0,
+        "type": "source"
+      },
+      {
+        "comment": "Ring 3 corners, alternating: 3 control (up, lower-right, lower-left) + 3 ultimate shutdown"
+      },
+      {
+        "q": 0,
+        "r": 3,
+        "sym": 3,
+        "type": "control"
+      },
+      {
+        "q": -3,
+        "r": 3,
+        "sym": 3,
+        "type": "ultimate_shutdown"
+      },
+      {
+        "comment": "Ring 6 edge midpoints: 6 control"
+      },
+      {
+        "q": 3,
+        "r": 3,
+        "sym": 6,
+        "type": "control"
+      },
+      {
+        "comment": "Ring 7 corners: 6 gas expansion modules"
+      },
+      {
+        "q": 0,
+        "r": 7,
+        "sym": 6,
+        "type": "gem"
+      },
+      {
+        "comment": "Corner notch: ring-8 corners reflector, ring-10 corners shield, ring-11 corners empty"
+      },
+      {
+        "q": 0,
+        "r": 8,
+        "sym": 6,
+        "type": "reflector"
+      },
+      {
+        "q": 0,
+        "r": 10,
+        "sym": 6,
+        "type": "shield"
+      },
+      {
+        "q": 0,
+        "r": 11,
+        "sym": 6,
+        "type": "empty"
+      }
+    ]
+  },
+  "expected_counts": {
+    "inner_fuel": 54,
+    "outer_fuel": 96,
+    "radial_blanket": 42,
+    "control": 9,
+    "ultimate_shutdown": 3,
+    "source": 1,
+    "gem": 6,
+    "reflector": 114,
+    "shield": 66,
+    "empty": 6
+  },
+  "assembly_types": {
+    "inner_fuel": {
+      "universe": "u_inner_fuel",
+      "fuel_params": {
+        "zr_frac": 0.1,
+        "u_vector": {
+          "haleu": 0.9,
+          "depleted": 0.1
+        }
+      }
+    },
+    "outer_fuel": {
+      "universe": "u_outer_fuel",
+      "fuel_params": {
+        "zr_frac": 0.1,
+        "u_vector": {
+          "haleu": 0.9,
+          "depleted": 0.1
+        }
+      }
+    },
+    "radial_blanket": {
+      "universe": "u_radial_blanket",
+      "fuel_params": {
+        "u235_frac": 0.002,
+        "pin_design": "anl_blanket"
+      }
+    },
+    "control": {
+      "universe": "u_control_withdrawn"
+    },
+    "ultimate_shutdown": {
+      "universe": "u_control_withdrawn"
+    },
+    "source": {
+      "universe": "u_source"
+    },
+    "gem": {
+      "universe": "u_gem"
+    },
+    "reflector": {
+      "universe": "u_reflector"
+    },
+    "shield": {
+      "universe": "u_shield"
+    },
+    "empty": {
+      "universe": "u_empty"
+    }
+  }
+}

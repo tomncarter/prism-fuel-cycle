@@ -23,6 +23,7 @@ ANL-AFCI-202 and Till & Chang, *Plentiful Energy*. Sources are listed in `source
 | `prism_breakeven` | Self-sustaining closed cycle | 1.06 | 23 mo | 21.1 wt% | Reactor-grade Pu |
 | `prism_breeder` | Net fissile production | 1.23 | 23 mo | 20.9 wt% | Reactor-grade Pu |
 | `prism_weapons_pu` | Weapons-Pu disposition | 1.00 | 26 mo | 18.3 wt% | Weapons-grade Pu |
+| `prism_haleu` | HALEU startup (project design) | — | 23 mo | none (17.8 % U-235) | HALEU (19.75 %) + DU |
 
 Variants:
 
@@ -32,10 +33,54 @@ Variants:
 - **`prism_cr072`**: the UNF core with all absorbers inserted; use it with
   `prism_unf_recycle` to compute rod worth.
 - **`abr1000_breakeven`**: ABR-1000-style three-zone core with no blankets.
-- **Fresh-fuel comparison** (breakeven layout, one fissile source each):
+- **`prism_haleu`**: Pu-free startup core with U-10Zr HALEU drivers. It keeps the Triplett
+  breakeven geometry (rods, USS, GEMs, source, radial blanket, notches) but makes the 42
+  internal blankets drivers (54 inner + 96 outer). Fresh HALEU in the breakeven layout
+  would need about 24 % U-235, above the 19.75 % HALEU limit. See
+  [HALEU testing](#haleu-testing).
+- **Fresh-fuel comparison** (all-driver ring layout with no rods, GEMs or blankets;
+  one fissile source each):
   - `fueltest_*` use fixed enrichments: HALEU and WG-U both at 16.5 % U-235, RG-Pu at
     21 % Pu/HM, WG-Pu at 17 % Pu/HM.
   - `matchedk_*` use loadings searched to k = 1.005.
+
+## HALEU testing
+
+Two sets of HALEU loadouts cover this:
+
+| Loadout | Layout | U-235 | Purpose |
+|---|---|---|---|
+| `fueltest_haleu` | All-driver rings 0–8 | 16.5 % (fixed) | Fresh-fuel screen next to WG-U, RG-Pu, WG-Pu |
+| `matchedk_haleu` | All-driver rings 0–8 | searched to k = 1.005 | Matched-reactivity comparison |
+| `prism_haleu` | Triplett geometry, no internal blankets | 17.8 % starting value | Full HALEU startup core |
+
+Each loadout mixes HALEU and DU through `u_vector`, which names vectors from
+`U_VECTORS` in `materials/tier1_homog.py` with their weights, for example
+`{"haleu": 0.9, "depleted": 0.1}`. `haleu` is 19.75 % U-235 with 0.18 % U-234. For a
+uranium-only core, `loading_search` scales the enriched share of the blend (the
+`u_fissile` knob) and stops at pure HALEU.
+
+```bash
+# Fresh-core k-eff, then search the enrichment to BOC k = 1.03
+./run_openmc.sh python build_prism_core.py core_loadouts/prism_haleu.json --profile quick
+./run_openmc.sh python -m fuel_cycle.loading_search core_loadouts/prism_haleu.json --k-target 1.03
+
+# One depletion cycle (burnup, Pu-239 build-in, k swing)
+./run_openmc.sh python build_prism_core.py core_loadouts/prism_haleu.json --deplete
+
+# HALEU in the fresh-fuel matrix
+./run_fuel_tests.sh quick [--deplete]
+```
+
+`prism_haleu.json` hasn't been run yet. If the fresh core is still below the target k
+at the full 19.75 % (the search stops at the upper bound), the core needs more drivers
+or a smaller radial blanket, because the enrichment can't go higher.
+
+`prism_haleu` can't go through `fuel_cycle.cycle_runner` yet. A reload's TRU fraction is
+the startup fraction times the search scale, which is zero for a U-only driver. The runner
+therefore stops at the first reload with `NotImplementedError`
+(`CycleRunner._reload`). Supporting it needs a HALEU-to-TRU transition reload, made of
+recovered TRU plus external enriched U, which the code doesn't have.
 
 ## Closed fuel cycle
 
@@ -70,8 +115,16 @@ Triplett, discharge burnup, cooling time, Doppler, etc.) are in
 
 ## Running
 
-Everything runs in the `prism-openmc` Docker image through `./run_openmc.sh`. It uses
-ENDF/B-VIII.0 at operating temperature. Exit code 127 from the wrapper is harmless.
+Everything runs in the `prism-openmc` Docker image (OpenMC v0.15.3) through
+`./run_openmc.sh`. It uses ENDF/B-VIII.0 at operating temperature, mounted from
+`/opt/data/openmc/{xs,chain}`. Each container is pinned to one NUMA node (24 cores /
+48 threads). `NUMA_NODE=0|1` picks the node (default 0), and `THREADS=n` overrides the
+thread count. Two jobs can run side by side:
+
+```bash
+NUMA_NODE=0 ./run_openmc.sh python -m fuel_cycle.cycle_runner ... &
+NUMA_NODE=1 ./run_openmc.sh python build_prism_core.py core_loadouts/prism_haleu.json --deplete
+```
 
 ```bash
 docker build -t prism-openmc .                       # first time / after Dockerfile changes
@@ -106,6 +159,9 @@ owned by root, so delete it with `./run_openmc.sh rm -rf runs/<dir>`. Unit tests
 `tests/`.
 
 ## Code layout
+
+`ARCHITECTURE.md` explains how these pieces fit together, with data-flow diagrams for each
+pipeline.
 
 ```
 build_prism_core.py      single-core model build, transport / depletion

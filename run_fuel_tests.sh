@@ -16,8 +16,7 @@ failed=()
 for loadout in core_loadouts/fueltest_*.json; do
     ./run_openmc.sh python build_prism_core.py "$loadout" --profile "$PROFILE" "$@"
     rc=$?
-    # 127 comes from the stray trailing line in run_openmc.sh and is harmless.
-    if [[ $rc -ne 0 && $rc -ne 127 ]]; then
+    if [[ $rc -ne 0 ]]; then
         echo "!! $loadout failed (exit $rc)"
         failed+=("$loadout")
     fi

@@ -10,10 +10,12 @@ These are committed to the repo as reference — they are not regenerated on eve
 | `core_qr_labels.png` | Same layout annotated with axial (q, r) coordinates |
 | `core_assignment.csv` | Machine-readable form: one row per assembly, columns for (q,r), ring, index, universe name |
 
-To regenerate, run `build_prism_core.py` — the figures are written before the OpenMC
-model is built and do not require the container:
+To regenerate:
 
 ```bash
-python build_prism_core.py --plot-only   # if that flag is added; currently they are
-                                          # always written as a side-effect of build
+# Q,R coordinate map — no OpenMC or container required
+python _gen_qr_map.py
+
+# Ring index and loading maps — generated as a side-effect of build_prism_core.py
+./run_openmc.sh python build_prism_core.py core_loadouts/prism_unf_recycle.json
 ```

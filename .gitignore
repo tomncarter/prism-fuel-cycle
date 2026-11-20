@@ -1,3 +1,6 @@
+# Generated images at repo root (committed reference images live in figures/)
+/*.png
+
 # OpenMC run outputs
 runs/
 results/
@@ -25,3 +28,12 @@ __pycache__/
 
 # Claude Code local config
 .claude/
+
+# Generated at repo root by build_prism_core.py (reference copy lives in figures/)
+/core_assignment.csv
+
+# Overnight run logs
+logs/
+
+# Reference PDFs: cited in sources/README.md, not redistributed
+sources/*.pdf

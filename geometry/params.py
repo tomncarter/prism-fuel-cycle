@@ -5,14 +5,14 @@ from typing import Tuple
 
 @dataclass(frozen=True)
 class Prism3D:
-    active_height_cm: float = 101.60  # Tier-1 basis; later swap to 66.0 / 106.7 PRISM missions
+    active_height_cm: float = 101.60  # default; loadouts override via "active_height_cm" (66.0 / 106.7 PRISM missions)
 
 @dataclass(frozen=True)
 class AssemblyGeom:
-    # From ABR/S-PRISM-style basis:
+    # ANL-AFCI-202 (ABR-1000 reference concept, 2007): S-PRISM/ABR assembly geometry
     assembly_pitch_cm: float = 16.142
     inter_duct_gap_cm: float = 0.432
-    duct_thickness_cm: float = 0.394
+    duct_thickness_cm: float = 0.394   # ANL-AFCI-202 Tables II.1-2, III.6-10/11 (S-PRISM / ABR)
 
     @property
     def duct_flat_to_flat_cm(self) -> float:

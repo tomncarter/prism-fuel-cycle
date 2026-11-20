@@ -1,0 +1,158 @@
+{
+  "name": "prism_cr072",
+  "description": "PRISM UNF Recycle (CR 0.72) with all 9 control and 3 ultimate-shutdown assemblies inserted (solid B4C). Otherwise identical to prism_unf_recycle.json; use the pair for rod worth. TRU vector: LWR spent fuel, 50 MWd/kg, 10-y cooling (ANL-AFCI-202 Table II.1-1). Pin designs (ANL-AFCI-202): drivers anl_abr_driver.",
+  "source": "Triplett, Loewen & Dooies, Nucl. Technol. 178 (2012) 186, Fig. 8, Tables II-III",
+  "cycle_length_days": 365,
+  "active_height_cm": 66.0,
+  "pin_design": "anl_abr_driver",
+  "layout": {
+    "mode": "rings_with_overrides",
+    "rings": [
+      {
+        "range": [
+          0,
+          5
+        ],
+        "type": "inner_fuel"
+      },
+      {
+        "range": [
+          6,
+          8
+        ],
+        "type": "outer_fuel"
+      },
+      {
+        "range": [
+          9,
+          10
+        ],
+        "type": "reflector"
+      },
+      {
+        "range": [
+          11,
+          11
+        ],
+        "type": "shield"
+      }
+    ],
+    "overrides": [
+      {
+        "comment": "Triplett 2012 Fig. 8. (q, r) frame: (0, n) straight up, (n, -n) lower-right, (-n, 0) lower-left."
+      },
+      {
+        "comment": "Centre: neutron source"
+      },
+      {
+        "q": 0,
+        "r": 0,
+        "type": "source"
+      },
+      {
+        "comment": "Ring 3 corners, alternating: 3 control (up, lower-right, lower-left) + 3 ultimate shutdown"
+      },
+      {
+        "q": 0,
+        "r": 3,
+        "sym": 3,
+        "type": "control"
+      },
+      {
+        "q": -3,
+        "r": 3,
+        "sym": 3,
+        "type": "ultimate_shutdown"
+      },
+      {
+        "comment": "Ring 6 edge midpoints: 6 control"
+      },
+      {
+        "q": 3,
+        "r": 3,
+        "sym": 6,
+        "type": "control"
+      },
+      {
+        "comment": "Ring 7 corners: 6 gas expansion modules"
+      },
+      {
+        "q": 0,
+        "r": 7,
+        "sym": 6,
+        "type": "gem"
+      },
+      {
+        "comment": "Corner notch: ring-8 corners reflector, ring-10 corners shield, ring-11 corners empty"
+      },
+      {
+        "q": 0,
+        "r": 8,
+        "sym": 6,
+        "type": "reflector"
+      },
+      {
+        "q": 0,
+        "r": 10,
+        "sym": 6,
+        "type": "shield"
+      },
+      {
+        "q": 0,
+        "r": 11,
+        "sym": 6,
+        "type": "empty"
+      }
+    ]
+  },
+  "expected_counts": {
+    "inner_fuel": 84,
+    "outer_fuel": 108,
+    "control": 9,
+    "ultimate_shutdown": 3,
+    "source": 1,
+    "gem": 6,
+    "reflector": 114,
+    "shield": 66,
+    "empty": 6
+  },
+  "assembly_types": {
+    "inner_fuel": {
+      "universe": "u_inner_fuel",
+      "fuel_params": {
+        "pu_hm_frac": 0.189,
+        "zr_frac": 0.1,
+        "pu_vector": "lwr_sf_tru"
+      }
+    },
+    "outer_fuel": {
+      "universe": "u_outer_fuel",
+      "fuel_params": {
+        "pu_hm_frac": 0.227,
+        "zr_frac": 0.1,
+        "pu_vector": "lwr_sf_tru"
+      }
+    },
+    "control": {
+      "universe": "u_control_rod"
+    },
+    "ultimate_shutdown": {
+      "universe": "u_ultimate_shutdown"
+    },
+    "source": {
+      "universe": "u_source"
+    },
+    "gem": {
+      "universe": "u_gem"
+    },
+    "reflector": {
+      "universe": "u_reflector"
+    },
+    "shield": {
+      "universe": "u_shield"
+    },
+    "empty": {
+      "universe": "u_empty"
+    }
+  }
+}

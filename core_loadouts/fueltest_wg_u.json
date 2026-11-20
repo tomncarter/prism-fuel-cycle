@@ -1,0 +1,66 @@
+{
+  "name": "fueltest_wg_u",
+  "description": "Fuel test: weapons-grade HEU (93.2% U-235) down-blended with DU to 16.5% U-235/HM (iso-enrichment with the HALEU case), U-10Zr, no Pu. Breakeven layout.",
+  "cycle_length_days": 700,
+  "layout": {
+    "mode": "rings",
+    "rings": [
+      {
+        "range": [
+          0,
+          4
+        ],
+        "type": "inner_fuel"
+      },
+      {
+        "range": [
+          5,
+          8
+        ],
+        "type": "outer_fuel"
+      },
+      {
+        "range": [
+          9,
+          10
+        ],
+        "type": "reflector"
+      },
+      {
+        "range": [
+          11,
+          11
+        ],
+        "type": "shield"
+      }
+    ]
+  },
+  "assembly_types": {
+    "inner_fuel": {
+      "universe": "u_inner_fuel",
+      "fuel_params": {
+        "zr_frac": 0.1,
+        "u_vector": {
+          "weapons_grade": 0.1753,
+          "depleted": 0.8247
+        }
+      }
+    },
+    "outer_fuel": {
+      "universe": "u_outer_fuel",
+      "fuel_params": {
+        "zr_frac": 0.1,
+        "u_vector": {
+          "weapons_grade": 0.1753,
+          "depleted": 0.8247
+        }
+      }
+    },
+    "reflector": {
+      "universe": "u_reflector"
+    },
+    "shield": {
+      "universe": "u_shield"
+    }
+  }
+}

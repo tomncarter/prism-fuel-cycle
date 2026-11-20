@@ -11,9 +11,19 @@ def hex_distance(qr: Axial) -> int:
     return max(abs(q), abs(r), abs(-q - r))
 
 def axial_to_xy(q: int, r: int, pitch: float = 1.0) -> Tuple[float, float]:
-    # pointy-top axial to x,y
-    x = pitch * (math.sqrt(3) * (q + r/2.0))
-    y = pitch * (1.5 * r)
+    """Centre of assembly (q, r) for a flat-top lattice with centre-to-centre `pitch`.
+
+    This must match the OpenMC HexLattice (default orientation 'y': flat-top cells,
+    vertical columns, ring element 0 directly above the centre).  (0, n) is straight
+    up, (n, -n) lower-right, (-n, 0) lower-left.  The core maps in core_loadouts/ and
+    _gen_qr_map.py were drawn in this frame.
+
+    A pointy-top formula here (used before 2026-11-15) shifted each ring by about
+    n/2 cells, by a different angle for odd and even rings, so overrides (rods,
+    GEMs, corner notches) landed off the positions the loadout named.
+    """
+    x = pitch * (math.sqrt(3) / 2.0) * q
+    y = pitch * (r + q / 2.0)
     return x, y
 
 def ring_angle_sort(coords: List[Axial], start_angle_deg: float = 90.0) -> List[Axial]:
@@ -23,7 +33,8 @@ def ring_angle_sort(coords: List[Axial], start_angle_deg: float = 90.0) -> List[
     def ang(c: Axial) -> float:
         x, y = axial_to_xy(c[0], c[1], 1.0)
         a = math.degrees(math.atan2(y, x))
-        return (start_angle_deg - a + 360.0) % 360.0
+        # round so float noise cannot push the start cell (0 deg) to 359.999...
+        return round((start_angle_deg - a + 360.0) % 360.0, 6) % 360.0
     return sorted(coords, key=ang)
 
 def full_hex_coords(max_ring: int) -> List[Axial]:

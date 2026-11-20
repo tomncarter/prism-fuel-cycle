@@ -21,6 +21,33 @@ POWER_W         = POWER_MWth * 1e6 * CAPACITY_FACTOR
 TIMESTEP_DAYS   = 30             # length of each depletion step
 N_CYCLES        = 36             # total steps (36 × 30 d = ~3 years)
 
+# -----------------------------
+# Run profiles (--profile NAME)
+# -----------------------------
+# Transport statistics + depletion schedule per profile.  "standard" reproduces
+# the historical defaults and writes to runs/<loadout>/; every other profile
+# writes to runs/<loadout>__<profile>/ so results never mix (or resume) across
+# profiles.  Depletion "timesteps" are in days.
+RUN_PROFILES = {
+    # Pipeline check only: seconds-to-minutes, k-eff noise of several hundred pcm.
+    "smoke": dict(particles=2_000, batches=25, inactive=10,
+                  timesteps=[30, 30]),
+    # Screening / early data: ~1-year cycle in 6 steps.  Short leading steps
+    # let Xe-135 / Sm-149 saturate before the long steps.
+    "quick": dict(particles=10_000, batches=60, inactive=20,
+                  timesteps=[5, 25, 60, 90, 90, 90]),
+    # Historical defaults (36 × 30 d).
+    "standard": dict(particles=10_000, batches=80, inactive=20,
+                     timesteps=[TIMESTEP_DAYS] * N_CYCLES),
+    # Per-assembly depletion: half the quick histories, since depletion tallies
+    # run at ~2,000 p/s.  Reload searches keep their own, tighter k-eff.
+    "cycle": dict(particles=5_000, batches=60, inactive=20,
+                  timesteps=[5, 25, 60, 90, 90, 90]),
+    # T5.1 target statistics (≤15 pcm); expensive.
+    "production": dict(particles=5_000_000, batches=600, inactive=100,
+                       timesteps=[TIMESTEP_DAYS] * N_CYCLES),
+}
+
 
 @contextmanager
 def _working_dir(path: str):
@@ -34,10 +61,11 @@ def _working_dir(path: str):
 
 from geometry.params import AssemblyGeom, Prism3D, VesselGeom
 from geometry.universe_factory import UniverseFactory
-from materials.tier1_homog import make_materials
+from materials.tier1_homog import make_materials, make_materials_from_loadout
 
 from geometry.hexmap import build_hexlattice_rings_from_assignment, full_hex_coords, hex_distance, axial_to_xy
 from core_maps.abr_like_assignment import abr_like_assignment
+from core_maps.loader import load_axial, load_core
 
 Axial = Tuple[int, int]
 
@@ -116,13 +144,13 @@ def write_debug_plot(
 
     coords = full_hex_coords(max_ring)
 
-    fig = plt.figure(figsize=(10, 10))
+    fig = plt.figure(figsize=(18, 18))
     ax = plt.gca()
     ax.set_aspect("equal")
     ax.axis("off")
 
-    # pointy-top hex; RegularPolygon radius ~ pitch/sqrt(3) looks right
-    hex_radius = pitch_cm / math.sqrt(3.0) * 0.98
+    # pointy-top hex; fill tightly (0.999 leaves a hairline gap to keep edges visible)
+    hex_radius = pitch_cm / math.sqrt(3.0) * 0.999
 
     xs, ys = [], []
     for (q, r) in coords:
@@ -140,8 +168,16 @@ def write_debug_plot(
         )
         ax.add_patch(poly)
 
-    ax.set_xlim(min(xs) - pitch_cm * 2, max(xs) + pitch_cm * 2)
-    ax.set_ylim(min(ys) - pitch_cm * 2, max(ys) + pitch_cm * 2)
+    # Double-width outline on center hex
+    cx, cy = axial_to_xy(0, 0, pitch=pitch_cm)
+    ax.add_patch(RegularPolygon(
+        (cx, cy), numVertices=6, radius=hex_radius,
+        orientation=math.radians(30),
+        facecolor="none", edgecolor="black", linewidth=2.0,
+    ))
+
+    ax.set_xlim(min(xs) - pitch_cm, max(xs) + pitch_cm)
+    ax.set_ylim(min(ys) - pitch_cm, max(ys) + pitch_cm)
     ax.set_title("Core Debug Map (axial coords -> universe assignment)")
     plt.tight_layout()
     plt.savefig(out_png, dpi=200)
@@ -179,12 +215,12 @@ def write_reference_plot(
         ordered_coords.append(ring_angle_sort(by_ring[ring], start_angle_deg=90.0))
     ordered_coords.append([(0, 0)])
 
-    fig = plt.figure(figsize=(14, 14))
+    fig = plt.figure(figsize=(30, 30))
     ax = plt.gca()
     ax.set_aspect("equal")
     ax.axis("off")
 
-    hex_radius = pitch_cm / math.sqrt(3.0) * 0.98
+    hex_radius = pitch_cm / math.sqrt(3.0) * 0.999
 
     xs, ys = [], []
 
@@ -200,7 +236,7 @@ def write_reference_plot(
                 orientation=math.radians(30),
                 facecolor="white",
                 edgecolor="black",
-                linewidth=0.4,
+                linewidth=0.7,
             )
             ax.add_patch(poly)
 
@@ -219,13 +255,22 @@ def write_reference_plot(
                 x, y,
                 label,
                 ha="center", va="center",
-                fontsize=6,
+                fontsize=14,
             )
 
-    ax.set_xlim(min(xs) - pitch_cm * 2, max(xs) + pitch_cm * 2)
-    ax.set_ylim(min(ys) - pitch_cm * 2, max(ys) + pitch_cm * 2)
-    ax.set_title(f"Core reference map ({mode})")
-    plt.tight_layout()
+    # Double-width outline on center hex
+    cx, cy = axial_to_xy(0, 0, pitch=pitch_cm)
+    ax.add_patch(RegularPolygon(
+        (cx, cy), numVertices=6, radius=hex_radius,
+        orientation=math.radians(30),
+        facecolor="none", edgecolor="black", linewidth=2.5,
+    ))
+
+    margin = hex_radius * 1.1
+    ax.set_xlim(min(xs) - margin, max(xs) + margin)
+    ax.set_ylim(min(ys) - margin, max(ys) + margin)
+    ax.set_title(f"Core reference map ({mode})", fontsize=20)
+    plt.tight_layout(pad=0.3)
     plt.savefig(out_png, dpi=300)
     plt.close(fig)
 
@@ -270,12 +315,12 @@ def write_loading_map_with_legend(
         "u_radial_blanket": "Radial blanket",
     }
 
-    fig = plt.figure(figsize=(12, 12))
+    fig = plt.figure(figsize=(20, 20))
     ax = plt.gca()
     ax.set_aspect("equal")
     ax.axis("off")
 
-    hex_radius = pitch_cm / math.sqrt(3.0) * 0.98
+    hex_radius = pitch_cm / math.sqrt(3.0) * 0.999
 
     xs, ys = [], []
     used = set()
@@ -297,6 +342,14 @@ def write_loading_map_with_legend(
         )
         ax.add_patch(poly)
 
+    # Double-width outline on center hex
+    cx, cy = axial_to_xy(0, 0, pitch=pitch_cm)
+    ax.add_patch(RegularPolygon(
+        (cx, cy), numVertices=6, radius=hex_radius,
+        orientation=math.radians(30),
+        facecolor="none", edgecolor="black", linewidth=2.0,
+    ))
+
     # Legend entries in a stable order
     order = [
         "u_inner_fuel", "u_outer_fuel", "u_internal_blanket", "u_radial_blanket",
@@ -315,10 +368,10 @@ def write_loading_map_with_legend(
                 )
             )
 
-    ax.set_xlim(min(xs) - pitch_cm * 2, max(xs) + pitch_cm * 2)
-    ax.set_ylim(min(ys) - pitch_cm * 2, max(ys) + pitch_cm * 2)
-    ax.legend(handles=legend_handles, loc="upper right", frameon=True)
-    ax.set_title("Core loading map (by universe type)")
+    ax.set_xlim(min(xs) - pitch_cm, max(xs) + pitch_cm)
+    ax.set_ylim(min(ys) - pitch_cm, max(ys) + pitch_cm)
+    ax.legend(handles=legend_handles, loc="upper right", frameon=True, fontsize=14)
+    ax.set_title("Core loading map (by universe type)", fontsize=16)
     plt.tight_layout()
     plt.savefig(out_png, dpi=250)
     plt.close(fig)
@@ -327,56 +380,100 @@ def write_loading_map_with_legend(
 # -----------------------------
 # Build OpenMC model (3D)
 # -----------------------------
-def build_model(max_ring: int = 11, internal_feed: str = "NU", radial_feed: str = "NU"):
-    # Materials
-    materials, mats_dict = make_materials(internal_feed=internal_feed, radial_feed=radial_feed)
+def _tru_nuclides(mats) -> list[str]:
+    """Np, Pu, Am and Cm nuclides present in mats (the TRU that fissions)."""
+    names = set()
+    for m in mats:
+        for n in m.get_nuclides():
+            if 93 <= openmc.data.zam(n)[0] <= 96:
+                names.add(n)
+    return sorted(names)
+
+
+def _entropy_mesh(vg: VesselGeom, axial: Prism3D) -> openmc.RegularMesh:
+    """Shannon entropy mesh over the active core, for checking source convergence."""
+    mesh = openmc.RegularMesh()
+    mesh.dimension = (9, 9, 6)
+    mesh.lower_left = (-vg.lattice_bound_r_cm, -vg.lattice_bound_r_cm, -axial.active_height_cm / 2.0)
+    mesh.upper_right = (vg.lattice_bound_r_cm, vg.lattice_bound_r_cm, axial.active_height_cm / 2.0)
+    return mesh
+
+
+def _require_temperatures(materials) -> None:
+    """OpenMC silently runs any material with no temperature at 293.6 K; refuse to."""
+    missing = [m.name for m in materials if m.temperature is None]
+    if missing:
+        raise ValueError(f"Materials with no temperature set: {missing}")
+
+
+def build_model(loadout_path: str, profile: str = "standard"):
+    """
+    Build an OpenMC model from a core loadout JSON file.
+
+    The loadout specifies which assembly type (and therefore which material)
+    occupies each lattice position, and may set "active_height_cm".  All other
+    geometry constants (pitch, duct dimensions, vessel radii, etc.) remain in Python.
+    Transport statistics come from RUN_PROFILES[profile].
+    """
+    prof = RUN_PROFILES[profile]
+    # Load core layout
+    positions, asm_types = load_core(loadout_path)
+
+    # Materials derived from loadout
+    materials, mats_dict = make_materials_from_loadout(asm_types)
 
     # Geometry params
     ag = AssemblyGeom()
-    axial = Prism3D()
+    axial = load_axial(loadout_path)
     vg = VesselGeom()
 
     # Universes
     uf = UniverseFactory(ag, mats_dict)
     univs = uf.build_all()
 
-    # Coordinate-based assignment (Tier-1 ABR-like zoning)
-    assignment = abr_like_assignment()
+    # Flat assignment dict: (q, r) -> universe name  (used by lattice builder + debug plots)
+    assignment = {(p.q, p.r): p.universe for p in positions}
+    max_ring = max(hex_distance((p.q, p.r)) for p in positions)
 
     # Analytic material volumes (needed for depletion normalization).
     # Interior volume per assembly = hex area of duct inner bore × active height.
-    # Tier-1 note: all assemblies of the same type share one material, so volume
-    # is the sum across all assemblies of that type.  For Tier-2 (pin-level),
-    # switch to model.calculate_volumes() stochastic estimate.
-    _assy_counts = Counter(assignment.values())
+    # Tier-1: all assemblies of the same type share one material, so the volume
+    # is the sum across all assemblies of that type.
     _f2f  = ag.duct_inner_flat_to_flat_cm
     _area = (math.sqrt(3) / 2.0) * _f2f ** 2   # regular hexagon, flat-to-flat F: A = (√3/2)F²
     _vol_per_assy = _area * axial.active_height_cm
-    mats_dict["fuel_driver_inner_homog"].volume  = _assy_counts["u_inner_fuel"]       * _vol_per_assy
-    mats_dict["fuel_driver_outer_homog"].volume  = _assy_counts["u_outer_fuel"]       * _vol_per_assy
-    mats_dict["fuel_blanket_internal_homog"].volume = _assy_counts["u_internal_blanket"] * _vol_per_assy
-    mats_dict["fuel_blanket_radial_homog"].volume   = _assy_counts["u_radial_blanket"]   * _vol_per_assy
+
+    # Count positions by universe to compute aggregate volumes
+    _univ_counts: Counter = Counter(p.universe for p in positions)
+    _fuel_vol_map = {
+        "fuel_driver_inner_homog":    "u_inner_fuel",
+        "fuel_driver_outer_homog":    "u_outer_fuel",
+        "fuel_blanket_internal_homog":"u_internal_blanket",
+        "fuel_blanket_radial_homog":  "u_radial_blanket",
+    }
+    for mat_key, univ_name in _fuel_vol_map.items():
+        if mat_key in mats_dict:
+            mats_dict[mat_key].volume = _univ_counts[univ_name] * _vol_per_assy
 
     # Debug artifacts
     write_reference_plot(
-        assignment,
-        max_ring=max_ring,
-        pitch_cm=ag.assembly_pitch_cm,
-        mode="qr",
-        out_png="core_qr_labels.png",
+        assignment, max_ring=max_ring, pitch_cm=ag.assembly_pitch_cm,
+        mode="qr", out_png="core_qr_labels.png",
     )
-
     write_reference_plot(
-        assignment,
-        max_ring=max_ring,
-        pitch_cm=ag.assembly_pitch_cm,
-        mode="both",
-        out_png="core_ring_index_map.png",
+        assignment, max_ring=max_ring, pitch_cm=ag.assembly_pitch_cm,
+        mode="both", out_png="core_ring_index_map.png",
     )
-    write_loading_map_with_legend(assignment, max_ring=max_ring, pitch_cm=ag.assembly_pitch_cm, out_png="core_loading_map.png")
-    write_core_assignment_csv(assignment, max_ring=max_ring, start_angle_deg=90.0, out_csv="core_assignment.csv")
+    write_loading_map_with_legend(
+        assignment, max_ring=max_ring, pitch_cm=ag.assembly_pitch_cm,
+        out_png="core_loading_map.png",
+    )
+    write_core_assignment_csv(
+        assignment, max_ring=max_ring, start_angle_deg=90.0,
+        out_csv="core_assignment.csv",
+    )
 
-    # Build complete rings (11 rings + center) from coordinates
+    # Build lattice ring lists from position assignment
     ring_names, _center = build_hexlattice_rings_from_assignment(
         assignment=assignment,
         max_ring=max_ring,
@@ -444,12 +541,13 @@ def build_model(max_ring: int = 11, internal_feed: str = "NU", radial_feed: str 
     # Settings
     settings = openmc.Settings()
     settings.run_mode = "eigenvalue"
-    settings.batches = 80
-    settings.inactive = 20
-    settings.particles = 10000
-    settings.temperature = {"method": "nearest"}
+    settings.batches = prof["batches"]
+    settings.inactive = prof["inactive"]
+    settings.particles = prof["particles"]
+    settings.temperature = {"method": "interpolation"}
     settings.statepoint = {"batches": [settings.batches]}
     settings.statepoint["filename"] = "statepoint_boc.h5"
+    settings.entropy_mesh = _entropy_mesh(vg, axial)
 
     # Source (0.15.3): keep only_fissionable=True
     bounds = [-250, -250, -axial.active_height_cm / 2.0, 250, 250, axial.active_height_cm / 2.0]
@@ -530,6 +628,31 @@ def build_model(max_ring: int = 11, internal_feed: str = "NU", radial_feed: str 
         t_blanket_flux.scores = ["flux"]
         tallies.append(t_blanket_flux)
 
+    # (C2) Conversion ratio = fissile production / fissile destruction:
+    #      (U-238 + Pu-240 capture) / (U-235 + Pu-239 + Pu-241 absorption)
+    #      Same definition as build_model_per_assembly; one bin per zone cell
+    #      so driver and blanket contributions can be separated.
+    cr_cells = fuel_cells + blanket_cells
+    if cr_cells:
+        t_cr_prod = openmc.Tally(name="cr_fissile_production")
+        t_cr_prod.filters = [openmc.CellFilter(cr_cells)]
+        t_cr_prod.nuclides = ["U238", "Pu240"]
+        t_cr_prod.scores = ["(n,gamma)"]
+        tallies.append(t_cr_prod)
+
+        t_cr_dest = openmc.Tally(name="cr_fissile_destruction")
+        t_cr_dest.filters = [openmc.CellFilter(cr_cells)]
+        t_cr_dest.nuclides = ["U235", "Pu239", "Pu241"]
+        t_cr_dest.scores = ["absorption"]
+        tallies.append(t_cr_dest)
+
+        # TRU conversion ratio = U-238 capture / TRU fission (ANL burner convention)
+        t_cr_tru = openmc.Tally(name="cr_tru_fission")
+        t_cr_tru.filters = [openmc.CellFilter(cr_cells)]
+        t_cr_tru.nuclides = _tru_nuclides(materials)
+        t_cr_tru.scores = ["fission"]
+        tallies.append(t_cr_tru)
+
     # (D) Vessel leakage — radial + axial, total and energy-resolved
     t_rad_total = openmc.Tally(name="leakage_radial_total")
     t_rad_total.filters = [openmc.SurfaceFilter(r_ves)]
@@ -561,39 +684,284 @@ def build_model(max_ring: int = 11, internal_feed: str = "NU", radial_feed: str 
     t_ax_bot_spectrum.scores = ["current"]
     tallies.append(t_ax_bot_spectrum)
 
+    _require_temperatures(materials)
     model = openmc.Model(geometry, materials, settings, tallies=tallies)
     return model
 
 
+def build_model_per_assembly(
+    positions,               # list[AssemblyPosition] from core_maps.loader
+    per_asm_fuel_mats: dict, # {material_id: openmc.Material} for fuel positions
+    base_mats_dict: dict,    # structural materials: sodium, ht9, reflector, etc.
+    settings_override: dict | None = None,
+    axial: Prism3D | None = None,  # default Prism3D(); see core_maps.loader.load_axial
+) -> openmc.Model:
+    """
+    Build an OpenMC model where each fuel assembly position has its own
+    unique OpenMC Material — required for per-assembly burnup tracking,
+    shuffling, and the NFRC coupling loop.
+
+    Non-fuel positions (reflector, shield, control, etc.) continue to use
+    shared materials from base_mats_dict via the standard UniverseFactory.
+
+    Args:
+        positions:          list of AssemblyPosition objects (from load_core)
+        per_asm_fuel_mats:  {material_id: openmc.Material} for each fuel slot
+        base_mats_dict:     structural material dict (same structure as mats_dict
+                            returned by make_materials / make_materials_from_loadout)
+        settings_override:  optional dict of Settings attribute overrides
+                            (e.g. {"particles": 5_000_000, "batches": 600})
+        axial:              axial geometry (active height)
+    """
+    ag = AssemblyGeom()
+    axial = axial or Prism3D()
+    vg = VesselGeom()
+
+    uf = UniverseFactory(ag, base_mats_dict)
+    # Build the shared non-fuel universes
+    shared_univs = uf.build_all()
+
+    # Build per-assembly universes for fuel positions; fall back to shared for others
+    position_univs: dict = {}
+    for p in positions:
+        if p.material_id in per_asm_fuel_mats:
+            position_univs[(p.q, p.r)] = uf.build_for_material(
+                p.material_id, per_asm_fuel_mats[p.material_id]
+            )
+        else:
+            position_univs[(p.q, p.r)] = shared_univs[p.universe]
+
+    # Flat assignment for the ring builder: (q,r) -> unique universe name
+    # We use f"u_pos_{material_id}" for fuel and the standard name for others
+    assignment = {}
+    all_univs = dict(shared_univs)  # start with shared universes
+    for p in positions:
+        if p.material_id in per_asm_fuel_mats:
+            key = f"u_pos_{p.material_id}"
+            assignment[(p.q, p.r)] = key
+            all_univs[key] = position_univs[(p.q, p.r)]
+        else:
+            assignment[(p.q, p.r)] = p.universe
+
+    max_ring = max(hex_distance((p.q, p.r)) for p in positions)
+
+    ring_names, _center = build_hexlattice_rings_from_assignment(
+        assignment=assignment,
+        max_ring=max_ring,
+        default_universe="u_reflector",
+        start_angle_deg=90.0,
+    )
+
+    lattice = openmc.HexLattice(name="core_hex_lattice")
+    lattice.center = (0.0, 0.0)
+    lattice.pitch = (ag.assembly_pitch_cm,)
+    lattice.universes = [[all_univs[name] for name in ring] for ring in ring_names]
+
+    outer_u = openmc.Universe(name="outer_sodium")
+    outer_u.add_cell(openmc.Cell(fill=base_mats_dict["sodium"]))
+    lattice.outer = outer_u
+
+    # Vessel geometry (identical to build_model)
+    H = axial.active_height_cm
+    r_lat  = openmc.ZCylinder(r=vg.lattice_bound_r_cm)
+    r_pool = openmc.ZCylinder(r=vg.ihx_pool_outer_r_cm)
+    r_ves  = openmc.ZCylinder(r=vg.vessel_outer_r_cm, boundary_type="vacuum")
+    z_bot_vac  = openmc.ZPlane(z0=-(H/2 + vg.lower_plenum_h_cm + vg.end_plate_cm), boundary_type="vacuum")
+    z_bot_plen = openmc.ZPlane(z0=-(H/2 + vg.lower_plenum_h_cm))
+    z_act_bot  = openmc.ZPlane(z0=-H/2)
+    z_act_top  = openmc.ZPlane(z0=+H/2)
+    z_top_plen = openmc.ZPlane(z0=+(H/2 + vg.upper_plenum_h_cm))
+    z_top_vac  = openmc.ZPlane(z0=+(H/2 + vg.upper_plenum_h_cm + vg.end_plate_cm), boundary_type="vacuum")
+
+    root_cells = [
+        openmc.Cell(name="active_core",        fill=lattice,                      region=-r_lat  & +z_act_bot & -z_act_top),
+        openmc.Cell(name="ihx_pool",           fill=base_mats_dict["pool_ihx"],   region=+r_lat  & -r_pool & +z_act_bot & -z_act_top),
+        openmc.Cell(name="vessel_wall_active", fill=base_mats_dict["ht9"],        region=+r_pool & -r_ves  & +z_act_bot & -z_act_top),
+        openmc.Cell(name="lower_plenum",       fill=base_mats_dict["lower_plenum"], region=-r_pool & +z_bot_plen & -z_act_bot),
+        openmc.Cell(name="vessel_wall_lower",  fill=base_mats_dict["ht9"],        region=+r_pool & -r_ves  & +z_bot_plen & -z_act_bot),
+        openmc.Cell(name="upper_plenum",       fill=base_mats_dict["upper_plenum"], region=-r_pool & +z_act_top & -z_top_plen),
+        openmc.Cell(name="vessel_wall_upper",  fill=base_mats_dict["ht9"],        region=+r_pool & -r_ves  & +z_act_top & -z_top_plen),
+        openmc.Cell(name="lower_end_plate",    fill=base_mats_dict["ht9"],        region=-r_ves  & +z_bot_vac & -z_bot_plen),
+        openmc.Cell(name="upper_end_plate",    fill=base_mats_dict["ht9"],        region=-r_ves  & +z_top_plen & -z_top_vac),
+    ]
+    geometry = openmc.Geometry(openmc.Universe(cells=root_cells))
+
+    # Structural materials plus the per-assembly fuel.  The zone-default fuel
+    # materials in base_mats_dict are depletable but unplaced (no volume), so
+    # they must stay out of the list or the depletion operator rejects them.
+    all_mats = [m for m in base_mats_dict.values() if not m.depletable]
+    all_mats += list(per_asm_fuel_mats.values())
+    materials = openmc.Materials(all_mats)
+
+    settings = openmc.Settings()
+    settings.run_mode = "eigenvalue"
+    settings.batches = 600
+    settings.inactive = 100
+    settings.particles = 5_000_000
+    settings.temperature = {"method": "interpolation"}
+    settings.entropy_mesh = _entropy_mesh(vg, axial)
+    bounds = [-250, -250, -axial.active_height_cm / 2.0, 250, 250, axial.active_height_cm / 2.0]
+    settings.source = openmc.IndependentSource(
+        space=openmc.stats.Box(bounds[:3], bounds[3:]),
+        constraints={"fissionable": True},
+    )
+    if settings_override:
+        for attr, val in settings_override.items():
+            setattr(settings, attr, val)
+    # After the overrides, so the statepoint lands on the final batch
+    settings.statepoint = {"batches": [settings.batches]}
+
+    # Tallies — same as build_model plus CR and per-assembly fission tallies
+    tallies = openmc.Tallies()
+    e_bins = [1e-3, 1e-1, 1.0, 1e2, 1e4, 1e5, 1e6, 2e7]
+
+    fuel_mats = list(per_asm_fuel_mats.values())
+    if fuel_mats:
+        t_flux = openmc.Tally(name="flux_spectrum_fuel")
+        t_flux.filters = [openmc.MaterialFilter(fuel_mats), openmc.EnergyFilter(e_bins)]
+        t_flux.scores = ["flux"]
+        tallies.append(t_flux)
+
+        # Conversion ratio = fissile production / fissile destruction:
+        #   (U-238 + Pu-240 capture) / (U-235 + Pu-239 + Pu-241 absorption)
+        t_cr_prod = openmc.Tally(name="cr_fissile_production")
+        t_cr_prod.filters = [openmc.MaterialFilter(fuel_mats)]
+        t_cr_prod.nuclides = ["U238", "Pu240"]
+        t_cr_prod.scores = ["(n,gamma)"]
+        tallies.append(t_cr_prod)
+
+        t_cr_dest = openmc.Tally(name="cr_fissile_destruction")
+        t_cr_dest.filters = [openmc.MaterialFilter(fuel_mats)]
+        t_cr_dest.nuclides = ["U235", "Pu239", "Pu241"]
+        t_cr_dest.scores = ["absorption"]
+        tallies.append(t_cr_dest)
+
+        # TRU conversion ratio = U-238 capture / TRU fission
+        t_cr_tru = openmc.Tally(name="cr_tru_fission")
+        t_cr_tru.filters = [openmc.MaterialFilter(fuel_mats)]
+        t_cr_tru.nuclides = _tru_nuclides(fuel_mats)
+        t_cr_tru.scores = ["fission"]
+        tallies.append(t_cr_tru)
+
+        # Per-assembly fission rate: power shape and peak burnup (T2.2)
+        t_fis_asm = openmc.Tally(name="fission_by_assembly")
+        t_fis_asm.filters = [openmc.MaterialFilter(fuel_mats)]
+        t_fis_asm.scores = ["fission"]
+        tallies.append(t_fis_asm)
+
+    t_rad_total = openmc.Tally(name="leakage_radial_total")
+    t_rad_total.filters = [openmc.SurfaceFilter(r_ves)]
+    t_rad_total.scores = ["current"]
+    tallies.append(t_rad_total)
+
+    t_ax_top = openmc.Tally(name="leakage_axial_top")
+    t_ax_top.filters = [openmc.SurfaceFilter(z_top_vac)]
+    t_ax_top.scores = ["current"]
+    tallies.append(t_ax_top)
+
+    t_ax_bot = openmc.Tally(name="leakage_axial_bot")
+    t_ax_bot.filters = [openmc.SurfaceFilter(z_bot_vac)]
+    t_ax_bot.scores = ["current"]
+    tallies.append(t_ax_bot)
+
+    _require_temperatures(materials)
+    return openmc.Model(geometry, materials, settings, tallies=tallies)
+
+
+def _with_pin_design(loadout: dict) -> dict:
+    from core_maps.loader import _with_pin_design as inject
+    return {k: at.get("fuel_params") for k, at in inject(loadout).items()}
+
+
+def write_run_info(run_dir: str, loadout_path: str, profile: str, deplete: bool) -> None:
+    """Record loadout + profile + tuning constants so postprocess can attach them to metadata."""
+    import dataclasses
+    import json
+    import materials.tier1_homog as t1
+
+    with open(loadout_path) as f:
+        loadout = json.load(f)
+    prof = RUN_PROFILES[profile]
+    info = {
+        "loadout":        loadout_path,
+        "loadout_name":   loadout.get("name"),
+        "profile":        profile,
+        "particles":      prof["particles"],
+        "batches":        prof["batches"],
+        "inactive":       prof["inactive"],
+        "timesteps_days": prof["timesteps"] if deplete else [],
+        "power_MWth":     POWER_MWth,
+        "active_height_cm": load_axial(loadout_path).active_height_cm,
+        "fissile_scale":  t1.FISSILE_SCALE,
+        "cross_sections": os.environ.get("OPENMC_CROSS_SECTIONS"),
+        "temperatures_K": {"interior": t1.T_INTERIOR_K, "coolant": t1.T_COOLANT_K,
+                           "inlet": t1.T_INLET_K, "outlet": t1.T_OUTLET_K},
+        "fuel_params":    {k: at["fuel_params"] for k, at in loadout["assembly_types"].items()
+                           if "fuel_params" in at},
+        "pin_design":     loadout.get("pin_design"),
+        "duct_thickness_cm": AssemblyGeom().duct_thickness_cm,
+        "interior_volume_fractions": {
+            k: dataclasses.asdict(t1.resolve_recipe(fp))
+            for k, fp in _with_pin_design(loadout).items() if fp is not None
+        },
+    }
+    with open(os.path.join(run_dir, "run_info.json"), "w") as f:
+        json.dump(info, f, indent=2)
+
+
 if __name__ == "__main__":
-    import itertools
+    import argparse
     import sys
 
-    deplete = "--deplete" in sys.argv   # pass --deplete flag to run full depletion
-                                        # default: single transport solve only
+    ap = argparse.ArgumentParser(description="Build and run a PRISM Tier-1 core from a JSON loadout.")
+    ap.add_argument("loadout", help="e.g. core_loadouts/prism_unf_recycle.json")
+    ap.add_argument("--deplete", action="store_true", help="run depletion instead of a single transport solve")
+    ap.add_argument("--profile", choices=RUN_PROFILES, default="standard",
+                    help="transport statistics + depletion schedule (default: standard)")
+    opts = ap.parse_args()
 
-    feeds = ["NU", "DU"]
-    for int_feed, rad_feed in itertools.product(feeds, feeds):
-        tag = f"{int_feed}int_{rad_feed}rad"
-        run_dir = os.path.join("runs", tag)
-        os.makedirs(run_dir, exist_ok=True)
-        print(f"\n=== Blanket permutation: internal={int_feed}, radial={rad_feed} ===")
-        model = build_model(max_ring=11, internal_feed=int_feed, radial_feed=rad_feed)
-        model.export_to_xml(directory=run_dir)
+    loadout_path = opts.loadout
+    deplete = opts.deplete
+    profile = opts.profile
+    timesteps = RUN_PROFILES[profile]["timesteps"]
 
-        if deplete:
-            print(f"  Running depletion: {N_CYCLES} × {TIMESTEP_DAYS} d @ {POWER_MWth} MWth "
-                  f"(CF={CAPACITY_FACTOR})")
-            with _working_dir(run_dir):
-                operator = openmc.deplete.CoupledOperator(model, CHAIN_FILE)
-                integrator = openmc.deplete.CECMIntegrator(
-                    operator,
-                    timesteps=[TIMESTEP_DAYS] * N_CYCLES,
-                    power=POWER_W,
-                    timestep_units="d",
-                )
-                integrator.integrate()
-            print(f"  Depletion complete → {run_dir}/depletion_results.h5")
+    loadout_name = os.path.splitext(os.path.basename(loadout_path))[0]
+    run_tag = loadout_name if profile == "standard" else f"{loadout_name}__{profile}"
+    run_dir = os.path.join("runs", run_tag)
+    os.makedirs(run_dir, exist_ok=True)
+
+    print(f"\n=== Loadout: {loadout_path} [{profile}] → {run_dir} ===")
+    model = build_model(loadout_path, profile=profile)
+    model.export_to_xml(directory=run_dir)
+    write_run_info(run_dir, loadout_path, profile, deplete)
+
+    if deplete:
+        n_steps = len(timesteps)
+        dep_h5 = os.path.join(run_dir, "depletion_results.h5")
+        prev_results = None
+        completed_steps = 0
+        if os.path.exists(dep_h5):
+            prev_results = openmc.deplete.Results(dep_h5)
+            completed_steps = len(prev_results) - 1  # len includes initial state
+            if completed_steps >= n_steps:
+                print(f"  Already complete ({completed_steps}/{n_steps} steps). Nothing to do.")
+                sys.exit(0)
+            print(f"  Resuming from step {completed_steps}/{n_steps} "
+                  f"({sum(timesteps[:completed_steps])} → {sum(timesteps)} d)")
         else:
-            sp = model.run(cwd=run_dir)
-            print(f"  statepoint: {sp}")
+            print(f"  Running depletion: {n_steps} steps / {sum(timesteps)} d @ {POWER_MWth} MWth "
+                  f"(CF={CAPACITY_FACTOR})")
+        remaining = timesteps[completed_steps:]
+        with _working_dir(run_dir):
+            operator = openmc.deplete.CoupledOperator(model, CHAIN_FILE, prev_results=prev_results)
+            integrator = openmc.deplete.CECMIntegrator(
+                operator,
+                timesteps=remaining,
+                power=POWER_W,
+                timestep_units="d",
+            )
+            integrator.integrate()
+        print(f"  Depletion complete → {run_dir}/depletion_results.h5")
+    else:
+        sp = model.run(cwd=run_dir)
+        print(f"  statepoint: {sp}")
